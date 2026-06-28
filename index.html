@@ -240,24 +240,45 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 /* ── Records grid ── */
 .records-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+/* ── Sticker book ── */
+#sticker-grid { background:#fdf0f8; border-radius:18px; }
 .sticker-card {
-  display:flex; flex-direction:column; align-items:center; justify-content:center;
-  border-radius:18px; padding:14px 8px 10px;
-  border:2.5px solid #f0d0e8; background:#fff;
-  text-align:center; transition:transform .15s, box-shadow .15s;
-  min-height:110px; cursor:default;
+  display:flex; flex-direction:column; align-items:center;
+  text-align:center; cursor:default; gap:6px;
 }
-.sticker-card.earned {
-  border-color:#F472B6; background:linear-gradient(145deg,#fff0f8,#fff);
-  box-shadow:0 4px 14px rgba(244,114,182,.25);
+/* The actual sticker circle */
+.sticker-badge {
+  width:82px; height:82px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center;
+  font-size:2.5rem; line-height:1;
+  background:#e5e5e5;
+  border:5px solid #fff;
+  box-shadow: 0 2px 0 #ccc, 0 4px 12px rgba(0,0,0,.10);
+  transition: transform .15s, box-shadow .15s;
+  position:relative;
 }
-.sticker-card.earned:active { transform:scale(1.07); }
-.sticker-card .sticker-emoji { font-size:2.6rem; line-height:1; margin-bottom:6px; }
-.sticker-card.locked .sticker-emoji { filter:grayscale(1) opacity(.35); }
-.sticker-card .sticker-name { font-size:.72rem; font-weight:700; color:#d946a1; margin-bottom:3px; }
-.sticker-card.locked .sticker-name { color:#aaa; }
-.sticker-card .sticker-hint { font-size:.63rem; color:#aaa; line-height:1.35; }
-.sticker-card.earned .sticker-hint { color:#22c55e; font-weight:700; }
+.sticker-card.earned .sticker-badge {
+  background: radial-gradient(circle at 35% 35%, #fff8 18%, transparent 60%),
+              linear-gradient(135deg, var(--sc1,#f9a8d4), var(--sc2,#fb923c));
+  border-color:#fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,.15), 0 6px 18px rgba(244,114,182,.35),
+              inset 0 1px 3px rgba(255,255,255,.6);
+}
+.sticker-card.earned .sticker-badge:active { transform:scale(1.12) rotate(-3deg); }
+/* Shiny highlight spot */
+.sticker-badge::after {
+  content:''; position:absolute; top:10px; left:16px;
+  width:22px; height:12px; border-radius:50%;
+  background:rgba(255,255,255,.45); transform:rotate(-30deg);
+  pointer-events:none;
+}
+.sticker-card.locked .sticker-badge::after { display:none; }
+/* Lock overlay */
+.sticker-card.locked .sticker-badge { filter:saturate(0); opacity:.45; }
+.sticker-name { font-size:.72rem; font-weight:800; color:#be185d; line-height:1.2; }
+.sticker-card.locked .sticker-name { color:#999; }
+.sticker-hint { font-size:.6rem; color:#999; line-height:1.35; max-width:88px; }
+.sticker-card.earned .sticker-hint { color:#16a34a; font-weight:700; font-size:.65rem; }
 .record-tile { text-align:center; border-radius:14px; padding:12px 8px; }
 .record-tile .rt-emoji { font-size:1.5rem; }
 .record-tile .rt-val { font-weight:900; font-size:1.3rem; line-height:1.1; margin:3px 0 2px; }
@@ -513,7 +534,7 @@ input:checked + .slider:before { transform: translateX(22px); }
     <h2>🐾 My Sticker Book</h2>
     <p class="muted" style="margin-top:4px;" id="sticker-count-label">Loading…</p>
   </div>
-  <div class="card" id="sticker-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding:18px;"></div>
+  <div id="sticker-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:18px; padding:18px;"></div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -2310,45 +2331,45 @@ function setFeedback(id, msg, cls) {
 const STICKERS = [
   // ── Daily challenge stickers ──
   { id:'first_daily',   emoji:'🐾', name:'First Paw!',     hint:'Complete your first Daily Challenge',
-    check: () => lsGet('total_daily_done', 0) >= 1 },
+    c1:'#f9a8d4', c2:'#f472b6', check: () => lsGet('total_daily_done', 0) >= 1 },
   { id:'daily3',        emoji:'🐶', name:'Good Pup',       hint:'Complete 3 Daily Challenges',
-    check: () => lsGet('total_daily_done', 0) >= 3 },
+    c1:'#fcd34d', c2:'#f59e0b', check: () => lsGet('total_daily_done', 0) >= 3 },
   { id:'daily7',        emoji:'🌟', name:'Star Student',   hint:'Complete 7 Daily Challenges',
-    check: () => lsGet('total_daily_done', 0) >= 7 },
+    c1:'#fde68a', c2:'#f97316', check: () => lsGet('total_daily_done', 0) >= 7 },
   { id:'daily_streak3', emoji:'🔥', name:'On Fire!',       hint:'3-day streak',
-    check: () => lsGet('daily_streak', {count:0}).count >= 3 },
+    c1:'#fdba74', c2:'#ef4444', check: () => lsGet('daily_streak', {count:0}).count >= 3 },
   { id:'daily_streak7', emoji:'🏆', name:'Champion Pup',   hint:'7-day streak',
-    check: () => lsGet('daily_streak', {count:0}).count >= 7 },
+    c1:'#fbbf24', c2:'#d97706', check: () => lsGet('daily_streak', {count:0}).count >= 7 },
 
   // ── Math stickers ──
   { id:'math_first',    emoji:'🔢', name:'Number Nose',    hint:'Answer 10 math facts correctly',
-    check: () => lsGet('math_pb', 0) >= 10 },
+    c1:'#a5f3fc', c2:'#0891b2', check: () => lsGet('math_pb', 0) >= 10 },
   { id:'math_tables',   emoji:'✖️',  name:'Times Pup',      hint:'Master a whole times table',
-    check: () => Object.keys(lsGet('math_mastered',{})).length >= 11 },
+    c1:'#93c5fd', c2:'#3b82f6', check: () => Object.keys(lsGet('math_mastered',{})).length >= 11 },
   { id:'math_streak10', emoji:'⚡', name:'Lightning Pup',  hint:'Get a 10-streak in Math Facts',
-    check: () => lsGet('math_best_streak', 0) >= 10 },
+    c1:'#fef08a', c2:'#eab308', check: () => lsGet('math_best_streak', 0) >= 10 },
 
   // ── Spelling stickers ──
   { id:'spell_first',   emoji:'✏️',  name:'Word Pup',       hint:'Spell 5 words correctly',
-    check: () => lsGet('spell_pb', 0) >= 5 },
+    c1:'#d8b4fe', c2:'#9333ea', check: () => lsGet('spell_pb', 0) >= 5 },
   { id:'spell_list',    emoji:'📚', name:'Bookworm Pup',   hint:'Master a full spelling list',
-    check: () => { const d = lsGet('spell_mastered',{}); return Object.values(d).some(v => v === true); } },
+    c1:'#c4b5fd', c2:'#7c3aed', check: () => { const d = lsGet('spell_mastered',{}); return Object.values(d).some(v => v === true); } },
 
   // ── Puppy Math (Snake) stickers ──
-  { id:'snake_first',   emoji:'🐕', name:'Bone Collector',  hint:'Score 5 in Puppy Math',
-    check: () => lsGet('snake_pb', 0) >= 5 },
-  { id:'snake_pro',     emoji:'🦮', name:'Guide Dog',       hint:'Score 20 in Puppy Math',
-    check: () => lsGet('snake_pb', 0) >= 20 },
+  { id:'snake_first',   emoji:'🐕', name:'Bone Collector', hint:'Score 5 in Puppy Math',
+    c1:'#bbf7d0', c2:'#16a34a', check: () => lsGet('snake_pb', 0) >= 5 },
+  { id:'snake_pro',     emoji:'🦮', name:'Guide Dog',      hint:'Score 20 in Puppy Math',
+    c1:'#6ee7b7', c2:'#059669', check: () => lsGet('snake_pb', 0) >= 20 },
 
   // ── Spelling Starfall stickers ──
   { id:'starfall_first',emoji:'⭐', name:'Star Catcher',   hint:'Score 30 in Spelling Starfall',
-    check: () => lsGet('starfall_pb', 0) >= 30 },
+    c1:'#fde68a', c2:'#f59e0b', check: () => lsGet('starfall_pb', 0) >= 30 },
   { id:'starfall_pro',  emoji:'🌠', name:'Shooting Star',  hint:'Score 100 in Spelling Starfall',
-    check: () => lsGet('starfall_pb', 0) >= 100 },
+    c1:'#c7d2fe', c2:'#6366f1', check: () => lsGet('starfall_pb', 0) >= 100 },
 
   // ── Secret / special ──
-  { id:'all_stickers',  emoji:'🏅', name:'Super Sophie!',  hint:'Collect all other stickers 🐾',
-    check: () => STICKERS.slice(0,-1).every(s => lsGet('sticker_'+s.id, false)) },
+  { id:'all_stickers',  emoji:'🏅', name:'Super Sophie!',  hint:'Collect all other stickers!',
+    c1:'#fce7f3', c2:'#db2777', check: () => STICKERS.slice(0,-1).every(s => lsGet('sticker_'+s.id, false)) },
 ];
 
 function checkAndAwardStickers() {
@@ -2379,8 +2400,9 @@ function renderStickerBook() {
   label.textContent = `${earned} of ${STICKERS.length} stickers collected 🐾`;
   grid.innerHTML = STICKERS.map(s => {
     const has = lsGet('sticker_'+s.id, false);
+    const style = has ? `style="--sc1:${s.c1};--sc2:${s.c2}"` : '';
     return `<div class="sticker-card ${has ? 'earned' : 'locked'}">
-      <div class="sticker-emoji">${s.emoji}</div>
+      <div class="sticker-badge" ${style}>${has ? s.emoji : '🔒'}</div>
       <div class="sticker-name">${s.name}</div>
       <div class="sticker-hint">${has ? '✅ Collected!' : s.hint}</div>
     </div>`;
