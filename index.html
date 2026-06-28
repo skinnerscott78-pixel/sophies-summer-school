@@ -2162,6 +2162,7 @@ function starfallLoop() {
 
   // Missed — bubble fell off
   if(y>H+r && !STARFALL_STATE.answered){
+    STARFALL_STATE.answered=true;
     STARFALL_STATE.lives--;
     updateStarfallHUD();
     setFeedback('starfall-feedback',`It was "${STARFALL_STATE.word.word}" — missed! ${STARFALL_STATE.lives>0?STARFALL_STATE.lives+' lives left 💪':''}`,'wrong');
