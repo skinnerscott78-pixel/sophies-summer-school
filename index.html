@@ -228,6 +228,16 @@ input:checked + .slider:before { transform: translateX(22px); }
 .mt4 { margin-top: 4px; }
 .muted { color: var(--grey); font-size: .9rem; }
 .pill-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ── Game screens ── */
+.dpad { display:grid; grid-template-columns:repeat(3,72px); gap:8px; justify-content:center; margin-top:10px; }
+.dpad-btn { background:var(--pink); color:#fff; border:none; border-radius:14px; width:72px; height:72px; font-size:1.7rem; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(255,105,180,.3); -webkit-user-select:none; user-select:none; touch-action:manipulation; }
+.dpad-btn:active { transform:scale(.91); background:var(--pink-dark); }
+.game-canvas-wrap { display:flex; justify-content:center; }
+.op-btn-sm { background:var(--white); border:2.5px solid var(--pink-lt); border-radius:14px; padding:14px 10px; cursor:pointer; text-align:center; transition:border-color .15s; display:flex; flex-direction:column; align-items:center; gap:5px; }
+.op-btn-sm:hover, .op-btn-sm:active { border-color:var(--pink); }
+.op-btn-sm .op-emoji { font-size:1.6rem; }
+.op-btn-sm .op-label { font-size:.85rem; font-weight:700; color:var(--pink-dark); }
 </style>
 </head>
 <body>
@@ -253,6 +263,12 @@ input:checked + .slider:before { transform: translateX(22px); }
       </button>
       <button class="btn big" style="background:#C084FC; box-shadow:0 4px 12px rgba(192,132,252,.35);" onclick="showScreen('screen-spell-home')">
         ✏️ Spelling
+      </button>
+      <button class="btn big" style="background:#E8440A; box-shadow:0 4px 12px rgba(232,68,10,.35);" onclick="showScreen('screen-snake')">
+        🐍 Math Snake
+      </button>
+      <button class="btn big" style="background:#0891B2; box-shadow:0 4px 12px rgba(8,145,178,.35);" onclick="showScreen('screen-starfall')">
+        ⭐ Spelling Starfall
       </button>
     </div>
   </div>
@@ -440,6 +456,107 @@ input:checked + .slider:before { transform: translateX(22px); }
 </div>
 
 <!-- ══════════════════════════════════════════
+     SCREEN: MATH SNAKE
+══════════════════════════════════════════ -->
+<div id="screen-snake" class="screen">
+  <div class="card">
+    <div class="problem-meta">
+      <button class="btn outline" style="padding:8px 16px; font-size:.85rem;" onclick="endSnakeGame()">← Back</button>
+      <span class="score-pill" id="snake-score">🦴 0</span>
+      <span class="score-pill" id="snake-lives">❤️❤️❤️</span>
+    </div>
+    <div style="text-align:center; font-size:.82rem; color:#bbb; margin-top:4px;" id="snake-pb">Best: 0</div>
+  </div>
+
+  <div class="game-canvas-wrap">
+    <canvas id="snake-canvas" style="border-radius:16px; border:3px solid var(--pink-lt); touch-action:none;"></canvas>
+  </div>
+
+  <div class="dpad">
+    <div></div>
+    <button class="dpad-btn" onclick="setSnakeDir(0,-1)">↑</button>
+    <div></div>
+    <button class="dpad-btn" onclick="setSnakeDir(-1,0)">←</button>
+    <div style="display:flex;align-items:center;justify-content:center;font-size:1.6rem;">🐾</div>
+    <button class="dpad-btn" onclick="setSnakeDir(1,0)">→</button>
+    <div></div>
+    <button class="dpad-btn" onclick="setSnakeDir(0,1)">↓</button>
+    <div></div>
+  </div>
+
+  <div class="feedback hidden" id="snake-feedback"></div>
+
+  <!-- Math question overlay -->
+  <div id="snake-math-overlay" class="overlay hidden">
+    <div class="overlay-card">
+      <div class="overlay-emoji">🦴</div>
+      <div class="overlay-title">Math Check!</div>
+      <div class="overlay-body" style="margin-bottom:8px;">Answer correctly to keep going!</div>
+      <div class="big-text" id="snake-math-problem" style="margin:10px 0 16px;">3 × 4 = ?</div>
+      <input class="answer-input" id="snake-math-input" type="text" inputmode="numeric" pattern="[0-9]*"
+        placeholder="Your answer" autocomplete="off" autocorrect="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter') submitSnakeMath()" style="margin-bottom:8px;">
+      <div id="snake-math-feedback" style="color:#C62828; font-weight:700; min-height:22px; margin-bottom:10px; font-size:.95rem;"></div>
+      <button class="btn" style="width:100%;" onclick="submitSnakeMath()">Check ✓</button>
+    </div>
+  </div>
+
+  <!-- Start / pick operation overlay -->
+  <div id="snake-start-overlay" class="overlay">
+    <div class="overlay-card" style="max-width:480px;">
+      <div class="overlay-emoji">🐶</div>
+      <div class="overlay-title">Math Snake!</div>
+      <div class="overlay-body">Guide the puppy 🐶 to eat the bones 🦴, but answer a math fact first! Wrong answer? Your tail shrinks! 🐍<br><br>Swipe or tap the arrows to steer.</div>
+      <p style="font-weight:700; margin:14px 0 8px; color:#555;">Pick your math:</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="op-btn-sm" onclick="startSnake('multiplication')"><span class="op-emoji">✖️</span><span class="op-label">Multiplication</span></div>
+        <div class="op-btn-sm" onclick="startSnake('division')"><span class="op-emoji">➗</span><span class="op-label">Division</span></div>
+        <div class="op-btn-sm" onclick="startSnake('addition')"><span class="op-emoji">➕</span><span class="op-label">Addition</span></div>
+        <div class="op-btn-sm" onclick="startSnake('mix')"><span class="op-emoji">🎲</span><span class="op-label">Mix It Up</span></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN: SPELLING STARFALL
+══════════════════════════════════════════ -->
+<div id="screen-starfall" class="screen">
+  <div class="card">
+    <div class="problem-meta">
+      <button class="btn outline" style="padding:8px 16px; font-size:.85rem;" onclick="endStarfall()">← Back</button>
+      <span class="score-pill" id="starfall-score">⭐ 0</span>
+      <span class="score-pill" id="starfall-lives">❤️❤️❤️</span>
+    </div>
+  </div>
+
+  <!-- List picker -->
+  <div id="starfall-list-picker" class="card">
+    <h2>⭐ Spelling Starfall</h2>
+    <p class="muted mt4">A star falls for each word — hear it, then type it before it hits the ground! 🌟</p>
+    <div id="starfall-list-buttons" style="margin-top:16px; display:flex; flex-direction:column; gap:10px;"></div>
+  </div>
+
+  <!-- Game area (hidden until list chosen) -->
+  <div id="starfall-game-area" style="display:none; flex-direction:column; gap:14px;">
+    <div class="game-canvas-wrap">
+      <canvas id="starfall-canvas" style="border-radius:16px;"></canvas>
+    </div>
+    <div class="card">
+      <p class="muted" style="text-align:center; font-size:.9rem; margin-bottom:10px;">Listen 🔊 then type the word!</p>
+      <input class="answer-input" id="starfall-input" type="text" inputmode="text"
+        placeholder="Type the word…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter') submitStarfallAnswer()">
+      <div class="btn-row" style="margin-top:10px;">
+        <button class="btn" onclick="submitStarfallAnswer()">Check ✓</button>
+        <button class="btn outline" onclick="speakStarfallWord()">🔊 Hear Again</button>
+      </div>
+    </div>
+    <div class="feedback hidden" id="starfall-feedback"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
      OVERLAY: Celebration / Joke / Review
 ══════════════════════════════════════════ -->
 <div class="overlay hidden" id="overlay">
@@ -525,6 +642,26 @@ const WORD_LISTS = {
     { word:"performance", sentence:"The performance made everyone cheer.", pattern:"-ance" },
     { word:"rehearsal",   sentence:"Rehearsal helps make the show perfect." },
   ],
+  '4th Grade': [
+    { word:"believe",    sentence:"I believe you can do anything you try!" },
+    { word:"neighbor",   sentence:"Our neighbor has a golden retriever.", pattern:"ei pattern" },
+    { word:"although",   sentence:"Although it rained, we still had fun." },
+    { word:"thought",    sentence:"She thought carefully before answering.", pattern:"silent letters" },
+    { word:"brought",    sentence:"He brought his puppy to the park.", pattern:"silent letters" },
+    { word:"received",   sentence:"She received a gold star for her work.", pattern:"ie/ei" },
+    { word:"beautiful",  sentence:"The sunset was absolutely beautiful." },
+    { word:"different",  sentence:"Every puppy has a different personality." },
+    { word:"separate",   sentence:"Separate the crayons by color." },
+    { word:"because",    sentence:"She smiled because she got every answer right." },
+    { word:"necessary",  sentence:"It is necessary to practice every day." },
+    { word:"especially", sentence:"She loved animals, especially puppies." },
+    { word:"usually",    sentence:"She usually practices ballet on Tuesdays." },
+    { word:"knowledge",  sentence:"Knowledge grows when you practice every day." },
+    { word:"achieve",    sentence:"You can achieve anything with hard work.", pattern:"ie/ei" },
+    { word:"written",    sentence:"She had written three whole pages." },
+    { word:"caught",     sentence:"She caught the ball with one hand.", pattern:"silent letters" },
+    { word:"enough",     sentence:"She had practiced enough to be ready.", pattern:"silent letters" },
+  ],
 };
 
 /* ════════════════════════════════════════════════
@@ -600,6 +737,17 @@ function renderHomeProgress() {
 ════════════════════════════════════════════════ */
 
 function showScreen(id) {
+  // Stop games if navigating away
+  const prevSnake = document.getElementById('screen-snake').classList.contains('active');
+  const prevStarfall = document.getElementById('screen-starfall').classList.contains('active');
+  if (prevSnake && id !== 'screen-snake') {
+    clearInterval(SNAKE_STATE.interval); SNAKE_STATE.running = false;
+  }
+  if (prevStarfall && id !== 'screen-starfall') {
+    STARFALL_STATE.running = false;
+    cancelAnimationFrame(STARFALL_STATE.animFrame);
+    window.speechSynthesis && window.speechSynthesis.cancel();
+  }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
@@ -607,6 +755,7 @@ function showScreen(id) {
   if (id === 'screen-math-home') renderMathOpProgress();
   if (id === 'screen-spell-home') renderSpellLists();
   if (id === 'screen-parent') renderParentScreen();
+  if (id === 'screen-starfall') { renderStarfallListButtons(); }
 }
 
 /* ════════════════════════════════════════════════
@@ -1306,6 +1455,443 @@ function confirmReset() {
   };
   overlayCallback = () => { if (confirmBtn) confirmBtn.style.display = 'none'; };
   document.getElementById('overlay').classList.remove('hidden');
+}
+
+/* ════════════════════════════════════════════════
+   MATH SNAKE
+════════════════════════════════════════════════ */
+
+const SNAKE_STATE = {
+  cols:20, rows:20,
+  snake:[], dir:{x:1,y:0}, nextDir:{x:1,y:0},
+  food:null,
+  score:0, lives:3,
+  running:false, paused:false,
+  interval:null, speed:200,
+  op:'multiplication',
+  mathFact:null, mathMisses:0,
+  touchStart:null,
+};
+
+// Polyfill-safe rounded rect
+function rrect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y);
+  ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+  ctx.lineTo(x+w,y+h-r);
+  ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);
+  ctx.lineTo(x+r,y+h);
+  ctx.quadraticCurveTo(x,y+h,x,y+h-r);
+  ctx.lineTo(x,y+r);
+  ctx.quadraticCurveTo(x,y,x+r,y);
+  ctx.closePath();
+}
+
+function initSnakeCanvas() {
+  const canvas = document.getElementById('snake-canvas');
+  const size = Math.min(window.innerWidth - 40, 380);
+  canvas.width = size; canvas.height = size;
+  return canvas;
+}
+
+function startSnake(op) {
+  document.getElementById('snake-start-overlay').classList.add('hidden');
+  const canvas = initSnakeCanvas();
+  SNAKE_STATE.op = op;
+  SNAKE_STATE.snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+  SNAKE_STATE.dir = {x:1,y:0}; SNAKE_STATE.nextDir = {x:1,y:0};
+  SNAKE_STATE.score = 0; SNAKE_STATE.lives = 3; SNAKE_STATE.speed = 200;
+  SNAKE_STATE.running = true; SNAKE_STATE.paused = false;
+  placeSnakeFood();
+  updateSnakeHUD();
+  if (SNAKE_STATE.interval) clearInterval(SNAKE_STATE.interval);
+  SNAKE_STATE.interval = setInterval(snakeTick, SNAKE_STATE.speed);
+
+  // Swipe controls
+  canvas.ontouchstart = function(e) {
+    SNAKE_STATE.touchStart = {x:e.touches[0].clientX, y:e.touches[0].clientY};
+    e.preventDefault();
+  };
+  canvas.ontouchend = function(e) {
+    if (!SNAKE_STATE.touchStart) return;
+    const dx = e.changedTouches[0].clientX - SNAKE_STATE.touchStart.x;
+    const dy = e.changedTouches[0].clientY - SNAKE_STATE.touchStart.y;
+    if (Math.abs(dx) > Math.abs(dy)) {
+      if (dx > 15) setSnakeDir(1,0); else if (dx < -15) setSnakeDir(-1,0);
+    } else {
+      if (dy > 15) setSnakeDir(0,1); else if (dy < -15) setSnakeDir(0,-1);
+    }
+    SNAKE_STATE.touchStart = null;
+    e.preventDefault();
+  };
+  drawSnake();
+}
+
+function setSnakeDir(dx, dy) {
+  if (dx===1  && SNAKE_STATE.dir.x!==-1) SNAKE_STATE.nextDir={x:1,y:0};
+  if (dx===-1 && SNAKE_STATE.dir.x!==1)  SNAKE_STATE.nextDir={x:-1,y:0};
+  if (dy===-1 && SNAKE_STATE.dir.y!==1)  SNAKE_STATE.nextDir={x:0,y:-1};
+  if (dy===1  && SNAKE_STATE.dir.y!==-1) SNAKE_STATE.nextDir={x:0,y:1};
+}
+
+document.addEventListener('keydown', function(e) {
+  if (!document.getElementById('screen-snake').classList.contains('active')) return;
+  if (document.getElementById('snake-math-overlay').classList.contains('hidden')) {
+    if (e.key==='ArrowUp')    { setSnakeDir(0,-1); e.preventDefault(); }
+    if (e.key==='ArrowDown')  { setSnakeDir(0,1);  e.preventDefault(); }
+    if (e.key==='ArrowLeft')  { setSnakeDir(-1,0); e.preventDefault(); }
+    if (e.key==='ArrowRight') { setSnakeDir(1,0);  e.preventDefault(); }
+  }
+});
+
+function placeSnakeFood() {
+  let pos;
+  do {
+    pos = {x:Math.floor(Math.random()*SNAKE_STATE.cols), y:Math.floor(Math.random()*SNAKE_STATE.rows)};
+  } while (SNAKE_STATE.snake.some(s=>s.x===pos.x && s.y===pos.y));
+  SNAKE_STATE.food = pos;
+}
+
+function snakeTick() {
+  if (!SNAKE_STATE.running || SNAKE_STATE.paused) return;
+  SNAKE_STATE.dir = {x:SNAKE_STATE.nextDir.x, y:SNAKE_STATE.nextDir.y};
+  const head = {x:SNAKE_STATE.snake[0].x+SNAKE_STATE.dir.x, y:SNAKE_STATE.snake[0].y+SNAKE_STATE.dir.y};
+
+  if (head.x<0||head.x>=SNAKE_STATE.cols||head.y<0||head.y>=SNAKE_STATE.rows||
+      SNAKE_STATE.snake.some(s=>s.x===head.x&&s.y===head.y)) {
+    snakeDie(); return;
+  }
+
+  SNAKE_STATE.snake.unshift(head);
+
+  if (head.x===SNAKE_STATE.food.x && head.y===SNAKE_STATE.food.y) {
+    SNAKE_STATE.score++;
+    if (SNAKE_STATE.score%5===0 && SNAKE_STATE.speed>110) {
+      SNAKE_STATE.speed-=15;
+      clearInterval(SNAKE_STATE.interval);
+      SNAKE_STATE.interval = setInterval(snakeTick, SNAKE_STATE.speed);
+    }
+    updateSnakeHUD();
+    SNAKE_STATE.paused = true;
+    showSnakeMathQuestion();
+  } else {
+    SNAKE_STATE.snake.pop();
+  }
+  drawSnake();
+}
+
+function showSnakeMathQuestion() {
+  const queue = buildQueue(SNAKE_STATE.op, 15);
+  SNAKE_STATE.mathFact = queue[Math.floor(Math.random()*Math.min(queue.length,8))];
+  SNAKE_STATE.mathMisses = 0;
+  const f = SNAKE_STATE.mathFact;
+  document.getElementById('snake-math-problem').textContent = `${f.a} ${opSymbol(f.op)} ${f.b} = ?`;
+  document.getElementById('snake-math-input').value = '';
+  document.getElementById('snake-math-feedback').textContent = '';
+  document.getElementById('snake-math-overlay').classList.remove('hidden');
+  setTimeout(()=>document.getElementById('snake-math-input').focus(), 80);
+}
+
+function submitSnakeMath() {
+  const input = document.getElementById('snake-math-input');
+  const val = parseInt(input.value, 10);
+  if (isNaN(val)) { input.focus(); return; }
+
+  if (val===SNAKE_STATE.mathFact.ans) {
+    recordMathHit(SNAKE_STATE.mathFact);
+    document.getElementById('snake-math-overlay').classList.add('hidden');
+    placeSnakeFood();
+    SNAKE_STATE.paused = false;
+    launchConfetti();
+  } else {
+    SNAKE_STATE.mathMisses++;
+    recordMathMiss(SNAKE_STATE.mathFact);
+    input.value='';
+    if (SNAKE_STATE.mathMisses>=2) {
+      if (SNAKE_STATE.snake.length>3) { SNAKE_STATE.snake.pop(); SNAKE_STATE.snake.pop(); }
+      document.getElementById('snake-math-feedback').textContent =
+        `The answer was ${SNAKE_STATE.mathFact.ans} — your snake shrunk a little! 🐍`;
+      setTimeout(()=>{
+        document.getElementById('snake-math-overlay').classList.add('hidden');
+        placeSnakeFood(); SNAKE_STATE.paused=false;
+      }, 2200);
+    } else {
+      document.getElementById('snake-math-feedback').textContent='Not quite! Try again 🐾';
+      input.focus();
+    }
+  }
+}
+
+function snakeDie() {
+  SNAKE_STATE.lives--;
+  updateSnakeHUD();
+  if (SNAKE_STATE.lives<=0) {
+    clearInterval(SNAKE_STATE.interval); SNAKE_STATE.running=false;
+    const pb=lsGet('snake_pb',0), newPb=SNAKE_STATE.score>pb;
+    if (newPb) lsSet('snake_pb', SNAKE_STATE.score);
+    setTimeout(()=>{
+      launchConfetti();
+      showOverlay('🐾','Game Over!',
+        `You ate ${SNAKE_STATE.score} bone${SNAKE_STATE.score!==1?'s':''}! ${newPb?'🏆 New high score!':'Best: '+Math.max(SNAKE_STATE.score,pb)}`,
+        'Play Again 🐍',
+        ()=>document.getElementById('snake-start-overlay').classList.remove('hidden'));
+    }, 200);
+  } else {
+    SNAKE_STATE.snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
+    SNAKE_STATE.dir={x:1,y:0}; SNAKE_STATE.nextDir={x:1,y:0};
+    setFeedback('snake-feedback',`Oops! ${SNAKE_STATE.lives} ${SNAKE_STATE.lives===1?'life':'lives'} left 🐾`,'info');
+    setTimeout(()=>setFeedback('snake-feedback','','hidden'), 2000);
+  }
+}
+
+function drawSnake() {
+  const canvas=document.getElementById('snake-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const cw=canvas.width/SNAKE_STATE.cols, ch=canvas.height/SNAKE_STATE.rows;
+
+  ctx.fillStyle='#FFF0F7'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle='rgba(255,182,217,0.35)'; ctx.lineWidth=0.5;
+  for(let x=0;x<=SNAKE_STATE.cols;x++){ctx.beginPath();ctx.moveTo(x*cw,0);ctx.lineTo(x*cw,canvas.height);ctx.stroke();}
+  for(let y=0;y<=SNAKE_STATE.rows;y++){ctx.beginPath();ctx.moveTo(0,y*ch);ctx.lineTo(canvas.width,y*ch);ctx.stroke();}
+
+  for(let i=SNAKE_STATE.snake.length-1;i>=1;i--){
+    const s=SNAKE_STATE.snake[i];
+    const alpha=0.9-(i/SNAKE_STATE.snake.length)*0.55;
+    ctx.fillStyle=`rgba(255,105,180,${alpha.toFixed(2)})`;
+    rrect(ctx,s.x*cw+2,s.y*ch+2,cw-4,ch-4,4); ctx.fill();
+  }
+
+  const head=SNAKE_STATE.snake[0];
+  ctx.font=`${Math.floor(cw*0.82)}px serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('🐶',head.x*cw+cw/2,head.y*ch+ch/2);
+
+  if(SNAKE_STATE.food){
+    ctx.font=`${Math.floor(cw*0.78)}px serif`;
+    ctx.fillText('🦴',SNAKE_STATE.food.x*cw+cw/2,SNAKE_STATE.food.y*ch+ch/2);
+  }
+}
+
+function updateSnakeHUD() {
+  document.getElementById('snake-score').textContent=`🦴 ${SNAKE_STATE.score}`;
+  document.getElementById('snake-lives').textContent=['','❤️','❤️❤️','❤️❤️❤️'][Math.max(0,SNAKE_STATE.lives)]||'';
+  document.getElementById('snake-pb').textContent=`Best: ${lsGet('snake_pb',0)}`;
+}
+
+function endSnakeGame() {
+  clearInterval(SNAKE_STATE.interval); SNAKE_STATE.running=false;
+  showScreen('screen-home');
+}
+
+/* ════════════════════════════════════════════════
+   SPELLING STARFALL
+════════════════════════════════════════════════ */
+
+const STARFALL_STATE = {
+  listName:null, words:[], wordIdx:0, word:null,
+  y:-70, speed:0.55,
+  score:0, lives:3,
+  running:false, animFrame:null,
+  answered:false, retryLeft:1,
+  stars:[],
+};
+let sfTime=0;
+
+function renderStarfallListButtons() {
+  const allLists={...WORD_LISTS,...lsGet('custom_lists',{})};
+  const colors=['#0891B2','#7C3AED','#059669','#E8440A','#DB2777'];
+  let html=''; let ci=0;
+  for(const name in allLists){
+    const c=colors[ci%colors.length]; ci++;
+    html+=`<button class="btn big" style="background:${c};" onclick="startStarfall('${name}')">${name} Words</button>`;
+  }
+  document.getElementById('starfall-list-buttons').innerHTML=html;
+}
+
+function startStarfall(listName) {
+  const allLists={...WORD_LISTS,...lsGet('custom_lists',{})};
+  STARFALL_STATE.listName=listName;
+  STARFALL_STATE.words=shuffleArray([...allLists[listName]]);
+  STARFALL_STATE.wordIdx=0;
+  STARFALL_STATE.score=0; STARFALL_STATE.lives=3; STARFALL_STATE.speed=0.55;
+  STARFALL_STATE.running=true; sfTime=0;
+
+  const canvas=document.getElementById('starfall-canvas');
+  const w=Math.min(window.innerWidth-40,400);
+  canvas.width=w; canvas.height=Math.round(w*0.58);
+
+  STARFALL_STATE.stars=[];
+  for(let i=0;i<25;i++){
+    STARFALL_STATE.stars.push({
+      x:Math.random()*w, y:Math.random()*canvas.height,
+      r:0.8+Math.random()*1.8, ph:Math.random()*Math.PI*2
+    });
+  }
+
+  document.getElementById('starfall-list-picker').style.display='none';
+  document.getElementById('starfall-game-area').style.cssText='display:flex;flex-direction:column;gap:14px;';
+  updateStarfallHUD();
+  loadStarfallWord();
+  if(STARFALL_STATE.animFrame) cancelAnimationFrame(STARFALL_STATE.animFrame);
+  starfallLoop();
+}
+
+function loadStarfallWord() {
+  if(STARFALL_STATE.wordIdx>=STARFALL_STATE.words.length){
+    STARFALL_STATE.running=false;
+    cancelAnimationFrame(STARFALL_STATE.animFrame);
+    const pb=lsGet('starfall_pb',0);
+    if(STARFALL_STATE.score>pb) lsSet('starfall_pb',STARFALL_STATE.score);
+    launchConfetti();
+    showOverlay('🌟','You finished the list!',
+      `Amazing! You scored ${STARFALL_STATE.score} points! ⭐`,
+      'Back to lists 🐾',
+      ()=>endStarfall());
+    return;
+  }
+  STARFALL_STATE.word=STARFALL_STATE.words[STARFALL_STATE.wordIdx];
+  STARFALL_STATE.y=-70;
+  STARFALL_STATE.answered=false; STARFALL_STATE.retryLeft=1;
+  document.getElementById('starfall-input').value='';
+  setFeedback('starfall-feedback','','hidden');
+  currentSpellWord=STARFALL_STATE.word;
+  setTimeout(()=>speakCurrentWord(),350);
+  setTimeout(()=>document.getElementById('starfall-input').focus(),400);
+}
+
+function starfallLoop() {
+  if(!STARFALL_STATE.running) return;
+  sfTime++;
+  const canvas=document.getElementById('starfall-canvas'); if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  STARFALL_STATE.y+=STARFALL_STATE.speed;
+
+  // Background — deep purple sky
+  const bg=ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#0f0828'); bg.addColorStop(1,'#1e0a40');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Twinkling stars
+  STARFALL_STATE.stars.forEach(s=>{
+    const a=0.4+0.6*Math.abs(Math.sin(sfTime*0.04+s.ph));
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(255,250,200,${a.toFixed(2)})`; ctx.fill();
+  });
+
+  // Danger zone glow at bottom
+  const dg=ctx.createLinearGradient(0,H-45,0,H);
+  dg.addColorStop(0,'rgba(255,50,50,0)'); dg.addColorStop(1,'rgba(255,50,50,0.45)');
+  ctx.fillStyle=dg; ctx.fillRect(0,H-45,W,45);
+
+  // Falling bubble
+  const cx=W/2, y=STARFALL_STATE.y, r=Math.min(44, W*0.13);
+  const nearBottom=Math.max(0,Math.min(1,(y-(H-r-50))/60));
+  const gR=Math.round(255), gG=Math.round(105+(182-105)*(1-nearBottom)), gB=Math.round(180*(1-nearBottom));
+
+  ctx.shadowColor=`rgb(${gR},${gG},${gB})`; ctx.shadowBlur=20;
+  ctx.beginPath(); ctx.arc(cx,y,r,0,Math.PI*2);
+  ctx.fillStyle=`rgba(${gR},${gG},${gB},0.88)`; ctx.fill();
+  ctx.strokeStyle='rgba(255,255,255,0.8)'; ctx.lineWidth=2.5; ctx.stroke();
+  ctx.shadowBlur=0;
+
+  // Sparkle orbit
+  for(let i=0;i<5;i++){
+    const angle=sfTime*0.03+i*(Math.PI*2/5);
+    const sx=cx+Math.cos(angle)*(r+10), sy=y+Math.sin(angle)*(r+10);
+    ctx.font='10px serif'; ctx.fillStyle='rgba(255,220,80,0.9)';
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('✦',sx,sy);
+  }
+
+  // "?" in bubble
+  ctx.fillStyle='#fff'; ctx.font=`bold ${Math.round(r*0.65)}px sans-serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText('?',cx,y);
+
+  // Missed — bubble fell off
+  if(y>H+r && !STARFALL_STATE.answered){
+    STARFALL_STATE.lives--;
+    updateStarfallHUD();
+    setFeedback('starfall-feedback',`It was "${STARFALL_STATE.word.word}" — missed! ${STARFALL_STATE.lives>0?STARFALL_STATE.lives+' lives left 💪':''}`,'wrong');
+    STARFALL_STATE.wordIdx++;
+    if(STARFALL_STATE.lives<=0){
+      STARFALL_STATE.running=false; cancelAnimationFrame(STARFALL_STATE.animFrame);
+      const pb=lsGet('starfall_pb',0); if(STARFALL_STATE.score>pb) lsSet('starfall_pb',STARFALL_STATE.score);
+      setTimeout(()=>showOverlay('🐾','Game Over!',
+        `You scored ${STARFALL_STATE.score} point${STARFALL_STATE.score!==1?'s':''}! Keep practicing! 🌟`,
+        'Try Again ⭐',
+        ()=>{ document.getElementById('starfall-list-picker').style.display='';
+              document.getElementById('starfall-game-area').style.display='none'; }),1000);
+      return;
+    }
+    setTimeout(()=>loadStarfallWord(), 2000);
+  }
+
+  STARFALL_STATE.animFrame=requestAnimationFrame(starfallLoop);
+}
+
+function submitStarfallAnswer() {
+  if(STARFALL_STATE.answered) return;
+  const input=document.getElementById('starfall-input');
+  const typed=input.value.trim().toLowerCase();
+  if(!typed){ input.focus(); return; }
+
+  const target=STARFALL_STATE.word.word.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const norm=typed.normalize('NFD').replace(/[̀-ͯ]/g,'');
+
+  if(norm===target){
+    STARFALL_STATE.answered=true;
+    STARFALL_STATE.score+=10; STARFALL_STATE.wordIdx++;
+    recordSpellHit(STARFALL_STATE.listName, STARFALL_STATE.word.word);
+    if(STARFALL_STATE.speed<2.0) STARFALL_STATE.speed+=0.07;
+    updateStarfallHUD();
+    setFeedback('starfall-feedback','✅ Perfect! +10 ⭐','correct');
+    input.value='';
+    setTimeout(()=>{ setFeedback('starfall-feedback','','hidden'); loadStarfallWord(); }, 800);
+  } else {
+    if(STARFALL_STATE.retryLeft>0){
+      STARFALL_STATE.retryLeft--;
+      setFeedback('starfall-feedback','Try again! 🐾','info');
+      currentSpellWord=STARFALL_STATE.word; speakCurrentWord();
+      input.value=''; input.focus();
+    } else {
+      STARFALL_STATE.answered=true; STARFALL_STATE.lives--;
+      STARFALL_STATE.wordIdx++;
+      recordSpellMiss(STARFALL_STATE.listName, STARFALL_STATE.word.word);
+      updateStarfallHUD();
+      setFeedback('starfall-feedback',`It was "${STARFALL_STATE.word.word}" 💪`,'wrong');
+      input.value='';
+      if(STARFALL_STATE.lives<=0){
+        STARFALL_STATE.running=false; cancelAnimationFrame(STARFALL_STATE.animFrame);
+        const pb=lsGet('starfall_pb',0); if(STARFALL_STATE.score>pb) lsSet('starfall_pb',STARFALL_STATE.score);
+        setTimeout(()=>showOverlay('🐾','Game Over!',
+          `You scored ${STARFALL_STATE.score} point${STARFALL_STATE.score!==1?'s':''}! Keep going! 🌟`,
+          'Try Again ⭐',
+          ()=>{ document.getElementById('starfall-list-picker').style.display='';
+                document.getElementById('starfall-game-area').style.display='none'; }), 1500);
+      } else {
+        setTimeout(()=>{ setFeedback('starfall-feedback','','hidden'); loadStarfallWord(); }, 2200);
+      }
+    }
+  }
+}
+
+function speakStarfallWord() {
+  currentSpellWord=STARFALL_STATE.word; speakCurrentWord();
+}
+
+function updateStarfallHUD() {
+  document.getElementById('starfall-score').textContent=`⭐ ${STARFALL_STATE.score}`;
+  document.getElementById('starfall-lives').textContent=['','❤️','❤️❤️','❤️❤️❤️'][Math.max(0,STARFALL_STATE.lives)]||'';
+}
+
+function endStarfall() {
+  STARFALL_STATE.running=false; cancelAnimationFrame(STARFALL_STATE.animFrame);
+  window.speechSynthesis&&window.speechSynthesis.cancel();
+  document.getElementById('starfall-list-picker').style.display='';
+  document.getElementById('starfall-game-area').style.display='none';
+  showScreen('screen-home');
 }
 
 /* ════════════════════════════════════════════════
