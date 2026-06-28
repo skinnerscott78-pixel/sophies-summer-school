@@ -240,6 +240,24 @@ input:checked + .slider:before { transform: translateX(22px); }
 
 /* ── Records grid ── */
 .records-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.sticker-card {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  border-radius:18px; padding:14px 8px 10px;
+  border:2.5px solid #f0d0e8; background:#fff;
+  text-align:center; transition:transform .15s, box-shadow .15s;
+  min-height:110px; cursor:default;
+}
+.sticker-card.earned {
+  border-color:#F472B6; background:linear-gradient(145deg,#fff0f8,#fff);
+  box-shadow:0 4px 14px rgba(244,114,182,.25);
+}
+.sticker-card.earned:active { transform:scale(1.07); }
+.sticker-card .sticker-emoji { font-size:2.6rem; line-height:1; margin-bottom:6px; }
+.sticker-card.locked .sticker-emoji { filter:grayscale(1) opacity(.35); }
+.sticker-card .sticker-name { font-size:.72rem; font-weight:700; color:#d946a1; margin-bottom:3px; }
+.sticker-card.locked .sticker-name { color:#bbb; }
+.sticker-card .sticker-hint { font-size:.62rem; color:#999; line-height:1.3; }
+.sticker-card.earned .sticker-hint { color:#F472B6; font-weight:600; }
 .record-tile { text-align:center; border-radius:14px; padding:12px 8px; }
 .record-tile .rt-emoji { font-size:1.5rem; }
 .record-tile .rt-val { font-weight:900; font-size:1.3rem; line-height:1.1; margin:3px 0 2px; }
@@ -290,6 +308,9 @@ input:checked + .slider:before { transform: translateX(22px); }
         ⭐ Spelling Starfall
       </button>
       <div id="daily-challenge-btn-wrap"></div>
+      <button class="btn big" style="background:linear-gradient(135deg,#F472B6,#FB923C); box-shadow:0 4px 12px rgba(244,114,182,.35);" onclick="showScreen('screen-stickers')">
+        🐾 My Sticker Book
+      </button>
     </div>
   </div>
 
@@ -478,6 +499,21 @@ input:checked + .slider:before { transform: translateX(22px); }
     <p class="muted mt4">This will clear all of Sophie's progress. Can't be undone!</p>
     <button class="btn" style="background:var(--red); margin-top:12px;" onclick="confirmReset()">🗑️ Reset Everything</button>
   </div>
+</div>
+
+<!-- ══════════════════════════════════════════
+     SCREEN: DAILY CHALLENGE
+══════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════
+     SCREEN: STICKER BOOK
+══════════════════════════════════════════ -->
+<div id="screen-stickers" class="screen">
+  <div class="card">
+    <button class="btn outline" style="margin-bottom:12px; padding:10px 20px; font-size:.9rem;" onclick="showScreen('screen-home')">← Home</button>
+    <h2>🐾 My Sticker Book</h2>
+    <p class="muted" style="margin-top:4px;" id="sticker-count-label">Loading…</p>
+  </div>
+  <div class="card" id="sticker-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px; padding:18px;"></div>
 </div>
 
 <!-- ══════════════════════════════════════════
@@ -846,6 +882,7 @@ function showScreen(id) {
   if (id === 'screen-parent') renderParentScreen();
   if (id === 'screen-starfall') { renderStarfallListButtons(); }
   if (id === 'screen-snake') { renderSkinPicker(); }
+  if (id === 'screen-stickers') { renderStickerBook(); }
 }
 
 /* ════════════════════════════════════════════════
@@ -1055,6 +1092,7 @@ function submitMathAnswer() {
     MATH_STATE.sessionCorrect++;
     MATH_STATE.sessionCount++;
     MATH_STATE.streak++;
+    if (MATH_STATE.streak > lsGet('math_best_streak', 0)) lsSet('math_best_streak', MATH_STATE.streak);
     MATH_STATE.answered = true;
     recordMathHit(MATH_STATE.current);
     clearTimeout(MATH_STATE.timedTimeout);
@@ -1153,6 +1191,7 @@ function updateMathHUD() {
 
 function endMathSession() {
   clearTimeout(MATH_STATE.timedTimeout);
+  checkAndAwardStickers();
   showScreen('screen-math-home');
 }
 
@@ -1274,6 +1313,7 @@ function loadSpellWord() {
       return;
     }
     // Session done — show a joke first, then the completion overlay
+    checkAndAwardStickers();
     showJoke(() => {
       launchConfetti();
       showOverlay('🎉', 'List complete!', `You spelled ${SPELL_STATE.sessionCorrect} word${SPELL_STATE.sessionCorrect !== 1 ? 's' : ''} correctly! Great work! 🐶`, 'Back to lists 🐾', () => showScreen('screen-spell-home'));
@@ -1367,6 +1407,7 @@ function submitSpellAnswer() {
     SPELL_STATE.answered = true;
     SPELL_STATE.sessionCorrect++;
     document.getElementById('spell-score-display').textContent = `${SPELL_STATE.sessionCorrect} correct`;
+    const spb = lsGet('spell_pb', 0); if (SPELL_STATE.sessionCorrect > spb) lsSet('spell_pb', SPELL_STATE.sessionCorrect);
 
     recordSpellHit(SPELL_STATE.listName, currentSpellWord.word);
     const msgs = ['Perfect spelling! ✅', 'You got it! 🌟', 'Excellent! 🐶', 'Nailed it! ⭐', 'Beautiful! 🎉'];
@@ -1784,6 +1825,8 @@ function submitDailySpell() {
 
 function completeDailyChallenge() {
   lsSet('daily_challenge_date', new Date().toDateString());
+  lsSet('total_daily_done', lsGet('total_daily_done', 0) + 1);
+  checkAndAwardStickers();
   launchConfetti();
   setTimeout(()=>launchConfetti(), 500);
   setTimeout(()=>launchConfetti(), 1000);
@@ -1971,6 +2014,7 @@ function snakeDie() {
     clearInterval(SNAKE_STATE.interval); SNAKE_STATE.running=false;
     const pb=lsGet('snake_pb',0), newPb=SNAKE_STATE.score>pb;
     if (newPb) lsSet('snake_pb', SNAKE_STATE.score);
+    checkAndAwardStickers();
     const justUnlocked = PUPPY_SKINS.filter(s=>s.need>0 && s.need>pb && SNAKE_STATE.score>=s.need);
     setTimeout(()=>{
       launchConfetti();
@@ -2093,6 +2137,7 @@ function loadStarfallWord() {
     cancelAnimationFrame(STARFALL_STATE.animFrame);
     const pb=lsGet('starfall_pb',0);
     if(STARFALL_STATE.score>pb) lsSet('starfall_pb',STARFALL_STATE.score);
+    checkAndAwardStickers();
     launchConfetti();
     showOverlay('🌟','You finished the list!',
       `Amazing! You scored ${STARFALL_STATE.score} points! ⭐`,
@@ -2170,6 +2215,7 @@ function starfallLoop() {
     if(STARFALL_STATE.lives<=0){
       STARFALL_STATE.running=false; cancelAnimationFrame(STARFALL_STATE.animFrame);
       const pb=lsGet('starfall_pb',0); if(STARFALL_STATE.score>pb) lsSet('starfall_pb',STARFALL_STATE.score);
+      checkAndAwardStickers();
       setTimeout(()=>showOverlay('🐾','Game Over!',
         `You scored ${STARFALL_STATE.score} point${STARFALL_STATE.score!==1?'s':''}! Keep practicing! 🌟`,
         'Try Again ⭐',
@@ -2217,6 +2263,7 @@ function submitStarfallAnswer() {
       if(STARFALL_STATE.lives<=0){
         STARFALL_STATE.running=false; cancelAnimationFrame(STARFALL_STATE.animFrame);
         const pb=lsGet('starfall_pb',0); if(STARFALL_STATE.score>pb) lsSet('starfall_pb',STARFALL_STATE.score);
+        checkAndAwardStickers();
         setTimeout(()=>showOverlay('🐾','Game Over!',
           `You scored ${STARFALL_STATE.score} point${STARFALL_STATE.score!==1?'s':''}! Keep going! 🌟`,
           'Try Again ⭐',
@@ -2257,6 +2304,90 @@ function setFeedback(id, msg, cls) {
 }
 
 /* ════════════════════════════════════════════════
+   STICKER BOOK
+════════════════════════════════════════════════ */
+
+const STICKERS = [
+  // ── Daily challenge stickers ──
+  { id:'first_daily',   emoji:'🐾', name:'First Paw!',     hint:'Complete your first Daily Challenge',
+    check: () => lsGet('total_daily_done', 0) >= 1 },
+  { id:'daily3',        emoji:'🐶', name:'Good Pup',       hint:'Complete 3 Daily Challenges',
+    check: () => lsGet('total_daily_done', 0) >= 3 },
+  { id:'daily7',        emoji:'🌟', name:'Star Student',   hint:'Complete 7 Daily Challenges',
+    check: () => lsGet('total_daily_done', 0) >= 7 },
+  { id:'daily_streak3', emoji:'🔥', name:'On Fire!',       hint:'3-day streak',
+    check: () => lsGet('daily_streak', {count:0}).count >= 3 },
+  { id:'daily_streak7', emoji:'🏆', name:'Champion Pup',   hint:'7-day streak',
+    check: () => lsGet('daily_streak', {count:0}).count >= 7 },
+
+  // ── Math stickers ──
+  { id:'math_first',    emoji:'🔢', name:'Number Nose',    hint:'Answer 10 math facts correctly',
+    check: () => lsGet('math_pb', 0) >= 10 },
+  { id:'math_tables',   emoji:'✖️',  name:'Times Pup',      hint:'Master a whole times table',
+    check: () => Object.keys(lsGet('math_mastered',{})).length >= 11 },
+  { id:'math_streak10', emoji:'⚡', name:'Lightning Pup',  hint:'Get a 10-streak in Math Facts',
+    check: () => lsGet('math_best_streak', 0) >= 10 },
+
+  // ── Spelling stickers ──
+  { id:'spell_first',   emoji:'✏️',  name:'Word Pup',       hint:'Spell 5 words correctly',
+    check: () => lsGet('spell_pb', 0) >= 5 },
+  { id:'spell_list',    emoji:'📚', name:'Bookworm Pup',   hint:'Master a full spelling list',
+    check: () => { const d = lsGet('spell_mastered',{}); return Object.values(d).some(v => v === true); } },
+
+  // ── Puppy Math (Snake) stickers ──
+  { id:'snake_first',   emoji:'🐕', name:'Bone Collector',  hint:'Score 5 in Puppy Math',
+    check: () => lsGet('snake_pb', 0) >= 5 },
+  { id:'snake_pro',     emoji:'🦮', name:'Guide Dog',       hint:'Score 20 in Puppy Math',
+    check: () => lsGet('snake_pb', 0) >= 20 },
+
+  // ── Spelling Starfall stickers ──
+  { id:'starfall_first',emoji:'⭐', name:'Star Catcher',   hint:'Score 30 in Spelling Starfall',
+    check: () => lsGet('starfall_pb', 0) >= 30 },
+  { id:'starfall_pro',  emoji:'🌠', name:'Shooting Star',  hint:'Score 100 in Spelling Starfall',
+    check: () => lsGet('starfall_pb', 0) >= 100 },
+
+  // ── Secret / special ──
+  { id:'all_stickers',  emoji:'🏅', name:'Super Sophie!',  hint:'Collect all other stickers 🐾',
+    check: () => STICKERS.slice(0,-1).every(s => lsGet('sticker_'+s.id, false)) },
+];
+
+function checkAndAwardStickers() {
+  const newlyEarned = [];
+  STICKERS.forEach(s => {
+    const key = 'sticker_' + s.id;
+    if (!lsGet(key, false) && s.check()) {
+      lsSet(key, true);
+      newlyEarned.push(s);
+    }
+  });
+  if (newlyEarned.length) {
+    // Show each new sticker with a short delay between them
+    newlyEarned.forEach((s, i) => {
+      setTimeout(() => {
+        showOverlay(s.emoji, 'New Sticker! 🎉',
+          `You earned the "${s.name}" sticker!\n${s.hint}`,
+          'Yay! 🐾', () => {});
+      }, i * 2000);
+    });
+  }
+}
+
+function renderStickerBook() {
+  const grid = document.getElementById('sticker-grid');
+  const label = document.getElementById('sticker-count-label');
+  const earned = STICKERS.filter(s => lsGet('sticker_'+s.id, false)).length;
+  label.textContent = `${earned} of ${STICKERS.length} stickers collected 🐾`;
+  grid.innerHTML = STICKERS.map(s => {
+    const has = lsGet('sticker_'+s.id, false);
+    return `<div class="sticker-card ${has ? 'earned' : 'locked'}">
+      <div class="sticker-emoji">${s.emoji}</div>
+      <div class="sticker-name">${has ? s.name : '???'}</div>
+      <div class="sticker-hint">${has ? s.hint : 'Keep playing to unlock!'}</div>
+    </div>`;
+  }).join('');
+}
+
+/* ════════════════════════════════════════════════
    INIT
 ════════════════════════════════════════════════ */
 
@@ -2266,6 +2397,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderHomeRecords();
   renderDailyChallengeBtn();
   initTTS();
+  checkAndAwardStickers();
 });
 </script>
 </body>
