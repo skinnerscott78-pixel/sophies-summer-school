@@ -229,6 +229,25 @@ input:checked + .slider:before { transform: translateX(22px); }
 .muted { color: var(--grey); font-size: .9rem; }
 .pill-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
+/* ── Skin picker ── */
+.skin-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:10px; }
+.skin-cell { text-align:center; border-radius:12px; padding:9px 4px; cursor:pointer; border:3px solid var(--pink-lt); background:#fff; transition:border-color .15s, background .15s; }
+.skin-cell.equipped { border-color:var(--pink); background:var(--pink-bg); }
+.skin-cell.locked { opacity:.42; cursor:default; }
+.skin-cell .se { font-size:1.55rem; }
+.skin-cell .sn { font-size:.68rem; font-weight:700; color:var(--pink-dark); margin-top:2px; }
+.skin-cell .sr { font-size:.6rem; color:#aaa; }
+
+/* ── Records grid ── */
+.records-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:10px; }
+.record-tile { text-align:center; border-radius:14px; padding:12px 8px; }
+.record-tile .rt-emoji { font-size:1.5rem; }
+.record-tile .rt-val { font-weight:900; font-size:1.3rem; line-height:1.1; margin:3px 0 2px; }
+.record-tile .rt-lbl { font-size:.72rem; color:var(--grey); }
+
+/* ── Daily challenge ── */
+.challenge-done { text-align:center; padding:10px; color:#059669; font-weight:700; font-size:.9rem; }
+
 /* ── Game screens ── */
 .dpad { display:grid; grid-template-columns:repeat(3,72px); gap:8px; justify-content:center; margin-top:10px; }
 .dpad-btn { background:var(--pink); color:#fff; border:none; border-radius:14px; width:72px; height:72px; font-size:1.7rem; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(255,105,180,.3); -webkit-user-select:none; user-select:none; touch-action:manipulation; }
@@ -265,12 +284,18 @@ input:checked + .slider:before { transform: translateX(22px); }
         ✏️ Spelling
       </button>
       <button class="btn big" style="background:#E8440A; box-shadow:0 4px 12px rgba(232,68,10,.35);" onclick="showScreen('screen-snake')">
-        🐍 Math Snake
+        🐶 Puppy Math
       </button>
       <button class="btn big" style="background:#0891B2; box-shadow:0 4px 12px rgba(8,145,178,.35);" onclick="showScreen('screen-starfall')">
         ⭐ Spelling Starfall
       </button>
+      <div id="daily-challenge-btn-wrap"></div>
     </div>
+  </div>
+
+  <div class="card">
+    <h3>🏆 My Best Scores</h3>
+    <div class="records-grid" id="home-records"></div>
   </div>
 
   <div class="card">
@@ -456,6 +481,47 @@ input:checked + .slider:before { transform: translateX(22px); }
 </div>
 
 <!-- ══════════════════════════════════════════
+     SCREEN: DAILY CHALLENGE
+══════════════════════════════════════════ -->
+<div id="screen-daily" class="screen">
+  <div class="card">
+    <div class="problem-meta">
+      <button class="btn outline" style="padding:8px 16px; font-size:.85rem;" onclick="endDailyChallenge()">← Back</button>
+      <span class="score-pill" id="daily-score-display">0 / 15</span>
+      <span class="score-pill" style="background:#FFF8E1; border-color:#FFD700; color:#B8860B;" id="daily-type-pill">Math</span>
+    </div>
+  </div>
+
+  <!-- Math phase -->
+  <div id="daily-math-area" class="card text-center">
+    <p class="muted" style="margin-bottom:6px;" id="daily-math-label">Question 1 of 10</p>
+    <div class="big-text" id="daily-math-problem" style="margin:14px 0 18px;">3 × 4 = ?</div>
+    <input class="answer-input" id="daily-math-input" type="text" inputmode="numeric" pattern="[0-9]*"
+      placeholder="Your answer" autocomplete="off" autocorrect="off" spellcheck="false"
+      onkeydown="if(event.key==='Enter') submitDailyMath()">
+    <button class="btn" style="width:100%; margin-top:12px;" onclick="submitDailyMath()">Check ✓</button>
+  </div>
+
+  <!-- Spelling phase -->
+  <div id="daily-spell-area" class="card text-center" style="display:none;">
+    <p class="muted" style="margin-bottom:6px;" id="daily-spell-label">Spelling 1 of 5</p>
+    <div class="spell-word-box" id="daily-spell-box">?</div>
+    <p class="muted mt8" id="daily-spell-instruction">Listen, then type the word!</p>
+    <div class="mt8">
+      <input class="answer-input" id="daily-spell-input" type="text" inputmode="text"
+        placeholder="Type the word…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter') submitDailySpell()" style="margin-bottom:10px;">
+      <div class="btn-row">
+        <button class="btn" onclick="submitDailySpell()">Check ✓</button>
+        <button class="btn outline" onclick="speakDailyWord()">🔊 Hear Again</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="feedback hidden" id="daily-feedback"></div>
+</div>
+
+<!-- ══════════════════════════════════════════
      SCREEN: MATH SNAKE
 ══════════════════════════════════════════ -->
 <div id="screen-snake" class="screen">
@@ -505,8 +571,10 @@ input:checked + .slider:before { transform: translateX(22px); }
   <div id="snake-start-overlay" class="overlay">
     <div class="overlay-card" style="max-width:480px;">
       <div class="overlay-emoji">🐶</div>
-      <div class="overlay-title">Math Snake!</div>
+      <div class="overlay-title">Puppy Math!</div>
       <div class="overlay-body">Guide the puppy 🐶 to eat the bones 🦴, but answer a math fact first! Wrong answer? Your tail shrinks! 🐍<br><br>Swipe or tap the arrows to steer.</div>
+      <p style="font-weight:700; margin:14px 0 4px; color:#555;">Pick your character:</p>
+      <div class="skin-grid" id="skin-picker"></div>
       <p style="font-weight:700; margin:14px 0 8px; color:#555;">Pick your math:</p>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         <div class="op-btn-sm" onclick="startSnake('multiplication')"><span class="op-emoji">✖️</span><span class="op-label">Multiplication</span></div>
@@ -598,23 +666,35 @@ const JOKES = [
 
 const WORD_LISTS = {
   Animals: [
+    { word:"cat",          sentence:"The cat curled up in a sunny spot." },
+    { word:"dog",          sentence:"The dog wagged its tail." },
+    { word:"bird",         sentence:"A little bird sang in the tree." },
+    { word:"frog",         sentence:"The frog jumped into the pond." },
+    { word:"bear",         sentence:"The bear slept all winter long." },
+    { word:"duck",         sentence:"The duck swam across the pond." },
     { word:"puppy",        sentence:"The puppy wagged its tail happily." },
     { word:"kitten",       sentence:"A soft kitten curled up on the blanket." },
-    { word:"hamster",      sentence:"The hamster ran on its wheel all night.", pattern:"silent letters" },
     { word:"parrot",       sentence:"The parrot can copy everything you say.", pattern:"double letters" },
     { word:"dolphin",      sentence:"A dolphin jumped high out of the water." },
     { word:"penguin",      sentence:"The penguin waddled across the ice." },
     { word:"cheetah",      sentence:"A cheetah is the fastest land animal." },
-    { word:"elephant",     sentence:"The elephant sprayed water with its trunk.", pattern:"silent letters" },
+    { word:"hamster",      sentence:"The hamster ran on its wheel all night." },
+    { word:"elephant",     sentence:"The elephant sprayed water with its trunk." },
     { word:"giraffe",      sentence:"A giraffe has a very long neck.", pattern:"double letters" },
     { word:"octopus",      sentence:"An octopus has eight wiggly arms." },
     { word:"butterfly",    sentence:"A colorful butterfly landed on the flower.", pattern:"compound" },
     { word:"caterpillar",  sentence:"The caterpillar spun a cozy cocoon." },
-    { word:"rhinoceros",   sentence:"A rhinoceros has a big horn on its nose." },
     { word:"crocodile",    sentence:"A crocodile floated silently in the river." },
     { word:"hippopotamus", sentence:"A hippopotamus loves to swim in the mud." },
   ],
   Art: [
+    { word:"draw",        sentence:"She loves to draw puppies every day." },
+    { word:"paint",       sentence:"He used red paint on the paper." },
+    { word:"line",        sentence:"Draw a straight line across the page." },
+    { word:"color",       sentence:"Which color is your favorite?" },
+    { word:"brush",       sentence:"She dipped the brush in the blue paint." },
+    { word:"sketch",      sentence:"She did a quick sketch of her dog." },
+    { word:"shade",       sentence:"Add shade to make it look round." },
     { word:"portrait",    sentence:"She painted a portrait of her puppy." },
     { word:"canvas",      sentence:"The artist stretched the canvas tight.", pattern:"silent letters" },
     { word:"palette",     sentence:"She mixed colors on her palette." },
@@ -622,45 +702,54 @@ const WORD_LISTS = {
     { word:"shading",     sentence:"Good shading makes a drawing look real." },
     { word:"blending",    sentence:"Blending the colors made a beautiful sunset." },
     { word:"charcoal",    sentence:"She used charcoal to sketch the puppy." },
-    { word:"realistic",   sentence:"Her realistic drawing fooled everyone!" },
-    { word:"sculpture",   sentence:"The sculptor made a tiny clay dog." },
     { word:"gallery",     sentence:"Her artwork hung in the school gallery." },
+    { word:"realistic",   sentence:"Her realistic drawing fooled everyone!" },
     { word:"watercolor",  sentence:"Watercolor paints mix with water to flow.", pattern:"compound" },
     { word:"perspective", sentence:"Perspective makes far things look smaller." },
   ],
   Ballet: [
-    { word:"passé",       sentence:"She lifted her foot into a perfect passé." },
-    { word:"pirouette",   sentence:"Her pirouette was fast and graceful." },
-    { word:"relevé",      sentence:"She rose on her toes in a beautiful relevé." },
-    { word:"tendu",       sentence:"She pointed her foot in a smooth tendu." },
+    { word:"leap",        sentence:"She took a big leap across the stage." },
+    { word:"turn",        sentence:"She did a perfect turn on one foot." },
+    { word:"pose",        sentence:"Hold that pose and smile!" },
+    { word:"spin",        sentence:"Watch her spin so fast!" },
+    { word:"step",        sentence:"Take one small step to the side." },
+    { word:"point",       sentence:"Point your toes as far as you can." },
     { word:"plié",        sentence:"Every ballet class begins with a plié." },
-    { word:"arabesque",   sentence:"She held her arabesque perfectly still." },
+    { word:"tendu",       sentence:"She pointed her foot in a smooth tendu." },
+    { word:"relevé",      sentence:"She rose on her toes in a beautiful relevé." },
+    { word:"passé",       sentence:"She lifted her foot into a perfect passé." },
     { word:"jeté",        sentence:"She leaped across the stage in a grand jeté." },
-    { word:"position",    sentence:"First position means heels together.", pattern:"-tion" },
     { word:"balance",     sentence:"Good balance helps every ballet move." },
     { word:"graceful",    sentence:"Her graceful arms floated like wings." },
+    { word:"position",    sentence:"First position means heels together.", pattern:"-tion" },
+    { word:"arabesque",   sentence:"She held her arabesque perfectly still." },
+    { word:"pirouette",   sentence:"Her pirouette was fast and graceful." },
     { word:"performance", sentence:"The performance made everyone cheer.", pattern:"-ance" },
     { word:"rehearsal",   sentence:"Rehearsal helps make the show perfect." },
   ],
   '4th Grade': [
-    { word:"believe",    sentence:"I believe you can do anything you try!" },
-    { word:"neighbor",   sentence:"Our neighbor has a golden retriever.", pattern:"ei pattern" },
-    { word:"although",   sentence:"Although it rained, we still had fun." },
+    { word:"never",      sentence:"She never gives up on hard problems." },
+    { word:"every",      sentence:"She practices every single day." },
+    { word:"first",      sentence:"She was first to finish the puzzle." },
+    { word:"their",      sentence:"The puppies found their toys." },
+    { word:"people",     sentence:"People clapped when the show was over." },
+    { word:"friend",     sentence:"A good friend always listens." },
+    { word:"pretty",     sentence:"The garden was very pretty in spring." },
+    { word:"caught",     sentence:"She caught the ball with one hand.", pattern:"silent letters" },
     { word:"thought",    sentence:"She thought carefully before answering.", pattern:"silent letters" },
     { word:"brought",    sentence:"He brought his puppy to the park.", pattern:"silent letters" },
-    { word:"received",   sentence:"She received a gold star for her work.", pattern:"ie/ei" },
+    { word:"enough",     sentence:"She had practiced enough to be ready.", pattern:"silent letters" },
+    { word:"because",    sentence:"She smiled because she got every answer right." },
+    { word:"written",    sentence:"She had written three whole pages." },
     { word:"beautiful",  sentence:"The sunset was absolutely beautiful." },
     { word:"different",  sentence:"Every puppy has a different personality." },
+    { word:"believe",    sentence:"I believe you can do anything you try!" },
     { word:"separate",   sentence:"Separate the crayons by color." },
-    { word:"because",    sentence:"She smiled because she got every answer right." },
-    { word:"necessary",  sentence:"It is necessary to practice every day." },
-    { word:"especially", sentence:"She loved animals, especially puppies." },
-    { word:"usually",    sentence:"She usually practices ballet on Tuesdays." },
-    { word:"knowledge",  sentence:"Knowledge grows when you practice every day." },
+    { word:"neighbor",   sentence:"Our neighbor has a golden retriever.", pattern:"ei pattern" },
+    { word:"although",   sentence:"Although it rained, we still had fun." },
     { word:"achieve",    sentence:"You can achieve anything with hard work.", pattern:"ie/ei" },
-    { word:"written",    sentence:"She had written three whole pages." },
-    { word:"caught",     sentence:"She caught the ball with one hand.", pattern:"silent letters" },
-    { word:"enough",     sentence:"She had practiced enough to be ready.", pattern:"silent letters" },
+    { word:"especially", sentence:"She loved animals, especially puppies." },
+    { word:"knowledge",  sentence:"Knowledge grows when you practice every day." },
   ],
 };
 
@@ -751,11 +840,12 @@ function showScreen(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
-  if (id === 'screen-home') { renderDailyStreak(); renderHomeProgress(); }
+  if (id === 'screen-home') { renderDailyStreak(); renderHomeProgress(); renderHomeRecords(); renderDailyChallengeBtn(); }
   if (id === 'screen-math-home') renderMathOpProgress();
   if (id === 'screen-spell-home') renderSpellLists();
   if (id === 'screen-parent') renderParentScreen();
   if (id === 'screen-starfall') { renderStarfallListButtons(); }
+  if (id === 'screen-snake') { renderSkinPicker(); }
 }
 
 /* ════════════════════════════════════════════════
@@ -1458,6 +1548,258 @@ function confirmReset() {
 }
 
 /* ════════════════════════════════════════════════
+   SKINS
+════════════════════════════════════════════════ */
+
+const PUPPY_SKINS = [
+  { emoji:'🐶', name:'Puppy',    need:0  },
+  { emoji:'🐩', name:'Poodle',   need:5  },
+  { emoji:'🐕', name:'Goldie',   need:10 },
+  { emoji:'🦮', name:'Buddy',    need:15 },
+  { emoji:'🐕‍🦺', name:'Hero Pup', need:20 },
+  { emoji:'🐺', name:'Wolf Pup', need:30 },
+  { emoji:'🦊', name:'Fox Pup',  need:45 },
+  { emoji:'🐾', name:'Ghost Pup',need:60 },
+];
+
+function getEquippedSkin() {
+  return PUPPY_SKINS[lsGet('equipped_skin',0)] || PUPPY_SKINS[0];
+}
+
+function equipSkin(idx) {
+  const pb = lsGet('snake_pb',0);
+  if (PUPPY_SKINS[idx] && pb >= PUPPY_SKINS[idx].need) {
+    lsSet('equipped_skin', idx);
+    renderSkinPicker();
+  }
+}
+
+function renderSkinPicker() {
+  const equipped = lsGet('equipped_skin',0);
+  const pb = lsGet('snake_pb',0);
+  let html = '<div class="skin-grid">';
+  PUPPY_SKINS.forEach((s,i) => {
+    const unlocked = pb >= s.need;
+    const active = equipped === i;
+    html += `<div class="skin-cell${active?' equipped':''}${!unlocked?' locked':''}" onclick="${unlocked?'equipSkin('+i+')':''}">
+      <div class="se">${unlocked ? s.emoji : '🔒'}</div>
+      <div class="sn">${s.name}</div>
+      ${!unlocked ? `<div class="sr">${s.need} 🦴</div>` : ''}
+    </div>`;
+  });
+  html += '</div>';
+  const el = document.getElementById('skin-picker');
+  if (el) el.innerHTML = html;
+}
+
+/* ════════════════════════════════════════════════
+   HOME RECORDS
+════════════════════════════════════════════════ */
+
+function renderHomeRecords() {
+  const snakePb   = lsGet('snake_pb', 0);
+  const starfallPb = lsGet('starfall_pb', 0);
+  const mathPb    = lsGet('math_pb', 0);
+  const streak    = (lsGet('daily_streak', {count:0})).count || 0;
+  const skin      = getEquippedSkin();
+  const el = document.getElementById('home-records');
+  if (!el) return;
+  el.innerHTML = `
+    <div class="record-tile" style="background:var(--pink-bg);">
+      <div class="rt-emoji">${skin.emoji}</div>
+      <div class="rt-val">${snakePb}</div>
+      <div class="rt-lbl">Puppy Math best 🦴</div>
+    </div>
+    <div class="record-tile" style="background:#EFF6FF;">
+      <div class="rt-emoji">⭐</div>
+      <div class="rt-val">${starfallPb}</div>
+      <div class="rt-lbl">Starfall points</div>
+    </div>
+    <div class="record-tile" style="background:#F0FDF4;">
+      <div class="rt-emoji">🔥</div>
+      <div class="rt-val">${streak}</div>
+      <div class="rt-lbl">day streak</div>
+    </div>
+    <div class="record-tile" style="background:#FFFBEB;">
+      <div class="rt-emoji">🧮</div>
+      <div class="rt-val">${mathPb}</div>
+      <div class="rt-lbl">math streak</div>
+    </div>`;
+}
+
+/* ════════════════════════════════════════════════
+   DAILY CHALLENGE
+════════════════════════════════════════════════ */
+
+const DAILY_STATE = {
+  mathQueue:[], spellWords:[], spellListName:'',
+  phase:'math', // 'math' | 'spell'
+  mathIdx:0, spellIdx:0,
+  correct:0, retryLeft:1, answered:false,
+  spellHideTimeout:null,
+};
+
+function isDailyChallengeComplete() {
+  return lsGet('daily_challenge_date', '') === new Date().toDateString();
+}
+
+function renderDailyChallengeBtn() {
+  const done = isDailyChallengeComplete();
+  const el = document.getElementById('daily-challenge-btn-wrap');
+  if (!el) return;
+  if (done) {
+    el.innerHTML = `<div class="challenge-done">✅ Today's Challenge complete! Come back tomorrow 🌟</div>`;
+  } else {
+    el.innerHTML = `<button class="btn big" style="background:linear-gradient(135deg,#F59E0B,#EF4444); box-shadow:0 4px 12px rgba(245,158,11,.4);" onclick="startDailyChallenge()">🌟 Today's Challenge</button>`;
+  }
+}
+
+function startDailyChallenge() {
+  if (isDailyChallengeComplete()) return;
+  DAILY_STATE.mathQueue = buildQueue('mix', 10);
+  const listNames = Object.keys(WORD_LISTS);
+  const listName = listNames[Math.floor(Math.random()*listNames.length)];
+  DAILY_STATE.spellListName = listName;
+  DAILY_STATE.spellWords = shuffleArray([...WORD_LISTS[listName]]).slice(0,5);
+  DAILY_STATE.phase = 'math'; DAILY_STATE.mathIdx = 0; DAILY_STATE.spellIdx = 0;
+  DAILY_STATE.correct = 0;
+  showScreen('screen-daily');
+  document.getElementById('daily-math-area').style.display = '';
+  document.getElementById('daily-spell-area').style.display = 'none';
+  document.getElementById('daily-type-pill').textContent = 'Math';
+  loadDailyMath();
+}
+
+function updateDailyScore() {
+  const total = 15, done = DAILY_STATE.mathIdx + DAILY_STATE.spellIdx;
+  document.getElementById('daily-score-display').textContent = `${DAILY_STATE.correct} / ${total}`;
+}
+
+function loadDailyMath() {
+  if (DAILY_STATE.mathIdx >= 10) {
+    // Switch to spelling phase
+    DAILY_STATE.phase = 'spell';
+    document.getElementById('daily-math-area').style.display = 'none';
+    document.getElementById('daily-spell-area').style.display = '';
+    document.getElementById('daily-type-pill').textContent = 'Spelling ✏️';
+    loadDailySpell();
+    return;
+  }
+  DAILY_STATE.answered = false; DAILY_STATE.retryLeft = 1;
+  const f = DAILY_STATE.mathQueue[DAILY_STATE.mathIdx];
+  document.getElementById('daily-math-problem').textContent = `${f.a} ${opSymbol(f.op)} ${f.b} = ?`;
+  document.getElementById('daily-math-label').textContent = `Question ${DAILY_STATE.mathIdx+1} of 10`;
+  document.getElementById('daily-math-input').value = '';
+  document.getElementById('daily-math-input').className = 'answer-input';
+  setFeedback('daily-feedback','','hidden');
+  updateDailyScore();
+  setTimeout(()=>document.getElementById('daily-math-input').focus(), 80);
+}
+
+function submitDailyMath() {
+  if (DAILY_STATE.answered) return;
+  const input = document.getElementById('daily-math-input');
+  const val = parseInt(input.value, 10);
+  if (isNaN(val)) { input.focus(); return; }
+  const f = DAILY_STATE.mathQueue[DAILY_STATE.mathIdx];
+  if (val === f.ans) {
+    input.className = 'answer-input correct';
+    DAILY_STATE.answered = true; DAILY_STATE.correct++;
+    recordMathHit(f);
+    setFeedback('daily-feedback','✅ Correct! 🌟','correct');
+    DAILY_STATE.mathIdx++;
+    updateDailyScore();
+    setTimeout(()=>loadDailyMath(), 700);
+  } else {
+    input.className = 'answer-input wrong';
+    if (DAILY_STATE.retryLeft > 0) {
+      DAILY_STATE.retryLeft--;
+      setFeedback('daily-feedback','Try again! 🐾','info');
+      setTimeout(()=>{ input.value=''; input.className='answer-input'; input.focus(); }, 500);
+    } else {
+      DAILY_STATE.answered = true;
+      recordMathMiss(f);
+      setFeedback('daily-feedback',`The answer was <strong>${f.ans}</strong> 💪`,'wrong');
+      DAILY_STATE.mathIdx++;
+      updateDailyScore();
+      setTimeout(()=>loadDailyMath(), 1600);
+    }
+  }
+}
+
+function loadDailySpell() {
+  if (DAILY_STATE.spellIdx >= 5) { completeDailyChallenge(); return; }
+  DAILY_STATE.answered = false; DAILY_STATE.retryLeft = 1;
+  const wordObj = DAILY_STATE.spellWords[DAILY_STATE.spellIdx];
+  currentSpellWord = wordObj;
+  document.getElementById('daily-spell-label').textContent = `Spelling ${DAILY_STATE.spellIdx+1} of 5`;
+  document.getElementById('daily-spell-input').value = '';
+  document.getElementById('daily-spell-input').className = 'answer-input';
+  setFeedback('daily-feedback','','hidden');
+  updateDailyScore();
+  const box = document.getElementById('daily-spell-box');
+  box.textContent = wordObj.word; box.classList.remove('hidden');
+  document.getElementById('daily-spell-instruction').textContent = 'Look carefully!';
+  if (DAILY_STATE.spellHideTimeout) clearTimeout(DAILY_STATE.spellHideTimeout);
+  DAILY_STATE.spellHideTimeout = setTimeout(()=>{
+    box.classList.add('hidden');
+    document.getElementById('daily-spell-instruction').textContent = 'Listen, then type the word!';
+    speakCurrentWord();
+    setTimeout(()=>document.getElementById('daily-spell-input').focus(), 200);
+  }, 2000);
+}
+
+function speakDailyWord() { speakCurrentWord(); }
+
+function submitDailySpell() {
+  if (DAILY_STATE.answered) return;
+  const input = document.getElementById('daily-spell-input');
+  const typed = input.value.trim().toLowerCase();
+  if (!typed) { input.focus(); return; }
+  const target = currentSpellWord.word.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  const norm = typed.normalize('NFD').replace(/[̀-ͯ]/g,'');
+  if (norm === target) {
+    input.className = 'answer-input correct';
+    DAILY_STATE.answered = true; DAILY_STATE.correct++;
+    recordSpellHit(DAILY_STATE.spellListName, currentSpellWord.word);
+    setFeedback('daily-feedback','✅ Perfect! 🌟','correct');
+    DAILY_STATE.spellIdx++; updateDailyScore();
+    setTimeout(()=>loadDailySpell(), 900);
+  } else {
+    input.className = 'answer-input wrong';
+    if (DAILY_STATE.retryLeft > 0) {
+      DAILY_STATE.retryLeft--;
+      setFeedback('daily-feedback','Try again! 🐾','info');
+      speakCurrentWord();
+      setTimeout(()=>{ input.value=''; input.className='answer-input'; input.focus(); }, 500);
+    } else {
+      DAILY_STATE.answered = true;
+      recordSpellMiss(DAILY_STATE.spellListName, currentSpellWord.word);
+      setFeedback('daily-feedback',`It was "${currentSpellWord.word}" 💪`,'wrong');
+      DAILY_STATE.spellIdx++; updateDailyScore();
+      setTimeout(()=>loadDailySpell(), 1800);
+    }
+  }
+}
+
+function completeDailyChallenge() {
+  lsSet('daily_challenge_date', new Date().toDateString());
+  launchConfetti();
+  setTimeout(()=>launchConfetti(), 500);
+  setTimeout(()=>launchConfetti(), 1000);
+  showOverlay('🌟','Challenge Complete!',
+    `You got ${DAILY_STATE.correct} out of 15! ${DAILY_STATE.correct>=13?'Incredible!! 🏆':DAILY_STATE.correct>=10?'Amazing work! 🎉':'Great effort! 💪'}<br><br>Come back tomorrow for a new one!`,
+    'Back Home 🐾',
+    ()=>showScreen('screen-home'));
+}
+
+function endDailyChallenge() {
+  if (DAILY_STATE.spellHideTimeout) clearTimeout(DAILY_STATE.spellHideTimeout);
+  window.speechSynthesis && window.speechSynthesis.cancel();
+  showScreen('screen-home');
+}
+
+/* ════════════════════════════════════════════════
    MATH SNAKE
 ════════════════════════════════════════════════ */
 
@@ -1500,7 +1842,7 @@ function startSnake(op) {
   SNAKE_STATE.op = op;
   SNAKE_STATE.snake = [{x:10,y:10},{x:9,y:10},{x:8,y:10}];
   SNAKE_STATE.dir = {x:1,y:0}; SNAKE_STATE.nextDir = {x:1,y:0};
-  SNAKE_STATE.score = 0; SNAKE_STATE.lives = 3; SNAKE_STATE.speed = 200;
+  SNAKE_STATE.score = 0; SNAKE_STATE.lives = 3; SNAKE_STATE.speed = 320;
   SNAKE_STATE.running = true; SNAKE_STATE.paused = false;
   placeSnakeFood();
   updateSnakeHUD();
@@ -1566,8 +1908,8 @@ function snakeTick() {
 
   if (head.x===SNAKE_STATE.food.x && head.y===SNAKE_STATE.food.y) {
     SNAKE_STATE.score++;
-    if (SNAKE_STATE.score%5===0 && SNAKE_STATE.speed>110) {
-      SNAKE_STATE.speed-=15;
+    if (SNAKE_STATE.score%8===0 && SNAKE_STATE.speed>180) {
+      SNAKE_STATE.speed-=18;
       clearInterval(SNAKE_STATE.interval);
       SNAKE_STATE.interval = setInterval(snakeTick, SNAKE_STATE.speed);
     }
@@ -1629,12 +1971,21 @@ function snakeDie() {
     clearInterval(SNAKE_STATE.interval); SNAKE_STATE.running=false;
     const pb=lsGet('snake_pb',0), newPb=SNAKE_STATE.score>pb;
     if (newPb) lsSet('snake_pb', SNAKE_STATE.score);
+    const justUnlocked = PUPPY_SKINS.filter(s=>s.need>0 && s.need>pb && SNAKE_STATE.score>=s.need);
     setTimeout(()=>{
       launchConfetti();
-      showOverlay('🐾','Game Over!',
-        `You ate ${SNAKE_STATE.score} bone${SNAKE_STATE.score!==1?'s':''}! ${newPb?'🏆 New high score!':'Best: '+Math.max(SNAKE_STATE.score,pb)}`,
-        'Play Again 🐍',
-        ()=>document.getElementById('snake-start-overlay').classList.remove('hidden'));
+      if(justUnlocked.length>0){
+        const u=justUnlocked[justUnlocked.length-1];
+        showOverlay('🎉','New character unlocked!',
+          `You unlocked <strong>${u.emoji} ${u.name}</strong>! Pick it on the next game screen!`,
+          'Awesome! 🐾',
+          ()=>document.getElementById('snake-start-overlay').classList.remove('hidden'));
+      } else {
+        showOverlay('🐾','Game Over!',
+          `You ate ${SNAKE_STATE.score} bone${SNAKE_STATE.score!==1?'s':''}! ${newPb?'🏆 New high score!':'Best: '+Math.max(SNAKE_STATE.score,pb)}`,
+          'Play Again 🐍',
+          ()=>document.getElementById('snake-start-overlay').classList.remove('hidden'));
+      }
     }, 200);
   } else {
     SNAKE_STATE.snake=[{x:10,y:10},{x:9,y:10},{x:8,y:10}];
@@ -1664,7 +2015,7 @@ function drawSnake() {
   const head=SNAKE_STATE.snake[0];
   ctx.font=`${Math.floor(cw*0.82)}px serif`;
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText('🐶',head.x*cw+cw/2,head.y*ch+ch/2);
+  ctx.fillText(getEquippedSkin().emoji,head.x*cw+cw/2,head.y*ch+ch/2);
 
   if(SNAKE_STATE.food){
     ctx.font=`${Math.floor(cw*0.78)}px serif`;
@@ -1713,7 +2064,7 @@ function startStarfall(listName) {
   STARFALL_STATE.listName=listName;
   STARFALL_STATE.words=shuffleArray([...allLists[listName]]);
   STARFALL_STATE.wordIdx=0;
-  STARFALL_STATE.score=0; STARFALL_STATE.lives=3; STARFALL_STATE.speed=0.55;
+  STARFALL_STATE.score=0; STARFALL_STATE.lives=3; STARFALL_STATE.speed=0.3;
   STARFALL_STATE.running=true; sfTime=0;
 
   const canvas=document.getElementById('starfall-canvas');
@@ -1844,7 +2195,7 @@ function submitStarfallAnswer() {
     STARFALL_STATE.answered=true;
     STARFALL_STATE.score+=10; STARFALL_STATE.wordIdx++;
     recordSpellHit(STARFALL_STATE.listName, STARFALL_STATE.word.word);
-    if(STARFALL_STATE.speed<2.0) STARFALL_STATE.speed+=0.07;
+    if(STARFALL_STATE.speed<1.2) STARFALL_STATE.speed+=0.04;
     updateStarfallHUD();
     setFeedback('starfall-feedback','✅ Perfect! +10 ⭐','correct');
     input.value='';
@@ -1911,6 +2262,8 @@ function setFeedback(id, msg, cls) {
 document.addEventListener('DOMContentLoaded', () => {
   renderDailyStreak();
   renderHomeProgress();
+  renderHomeRecords();
+  renderDailyChallengeBtn();
   initTTS();
 });
 </script>
