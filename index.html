@@ -255,9 +255,9 @@ input:checked + .slider:before { transform: translateX(22px); }
 .sticker-card .sticker-emoji { font-size:2.6rem; line-height:1; margin-bottom:6px; }
 .sticker-card.locked .sticker-emoji { filter:grayscale(1) opacity(.35); }
 .sticker-card .sticker-name { font-size:.72rem; font-weight:700; color:#d946a1; margin-bottom:3px; }
-.sticker-card.locked .sticker-name { color:#bbb; }
-.sticker-card .sticker-hint { font-size:.62rem; color:#999; line-height:1.3; }
-.sticker-card.earned .sticker-hint { color:#F472B6; font-weight:600; }
+.sticker-card.locked .sticker-name { color:#aaa; }
+.sticker-card .sticker-hint { font-size:.63rem; color:#aaa; line-height:1.35; }
+.sticker-card.earned .sticker-hint { color:#22c55e; font-weight:700; }
 .record-tile { text-align:center; border-radius:14px; padding:12px 8px; }
 .record-tile .rt-emoji { font-size:1.5rem; }
 .record-tile .rt-val { font-weight:900; font-size:1.3rem; line-height:1.1; margin:3px 0 2px; }
@@ -2381,8 +2381,8 @@ function renderStickerBook() {
     const has = lsGet('sticker_'+s.id, false);
     return `<div class="sticker-card ${has ? 'earned' : 'locked'}">
       <div class="sticker-emoji">${s.emoji}</div>
-      <div class="sticker-name">${has ? s.name : '???'}</div>
-      <div class="sticker-hint">${has ? s.hint : 'Keep playing to unlock!'}</div>
+      <div class="sticker-name">${s.name}</div>
+      <div class="sticker-hint">${has ? '✅ Collected!' : s.hint}</div>
     </div>`;
   }).join('');
 }
