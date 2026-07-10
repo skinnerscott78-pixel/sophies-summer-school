@@ -2816,11 +2816,22 @@ function drawPonyBlock(ctx, blk, W, H) {
   ctx.fillStyle='rgba(255,255,255,.22)';
   ctx.beginPath(); ctx.ellipse(x-w*.15, y-h*.15, w*.28, h*.18, -0.4, 0, Math.PI*2); ctx.fill();
 
-  // Problem text
-  ctx.fillStyle = col[1];
-  ctx.font=`bold ${Math.round(w*.27)}px system-ui`;
+  // Problem text — two lines, auto-shrink to fit block width
   ctx.textAlign='center'; ctx.textBaseline='middle';
-  ctx.fillText(`${a} × ${b} = ?`, x, y);
+  const maxW = w - 14;
+  let fs = Math.round(h * 0.30);
+  ctx.font = `bold ${fs}px system-ui`;
+  while (ctx.measureText(`${a} × ${b}`).width > maxW && fs > 10) {
+    fs--;
+    ctx.font = `bold ${fs}px system-ui`;
+  }
+  ctx.fillStyle = col[1];
+  ctx.fillText(`${a} × ${b}`, x, y - fs * 0.35);
+  ctx.font = `bold ${Math.round(fs * 0.72)}px system-ui`;
+  ctx.fillStyle = col[1];
+  ctx.globalAlpha = 0.7;
+  ctx.fillText(`= ?`, x, y + fs * 0.58);
+  ctx.globalAlpha = 1;
 
   // Danger glow near bottom
   const danger = Math.max(0, (blk.y - (H-200)) / 110);
