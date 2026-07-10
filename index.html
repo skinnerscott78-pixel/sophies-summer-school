@@ -674,6 +674,14 @@ input:checked + .slider:before { transform: translateX(22px); }
         <span class="score-pill" style="background:#f3e8ff;border-color:#a855f7;color:#7e22ce;" id="pd-level">Level 1</span>
         <span class="score-pill" id="pd-lives">❤️❤️❤️</span>
       </div>
+      <div id="pd-levelup-bar" style="margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+          <span style="font-size:.75rem;color:#a855f7;font-weight:700;" id="pd-levelup-label">7 correct → Level 2 🦄</span>
+        </div>
+        <div style="background:#f3e8ff;border-radius:99px;height:8px;overflow:hidden;">
+          <div id="pd-levelup-fill" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#a855f7,#ec4899);width:0%;transition:width .3s;"></div>
+        </div>
+      </div>
     </div>
     <div style="margin:0 auto;max-width:480px;">
       <canvas id="pd-canvas" style="width:100%;border-radius:18px;display:block;"></canvas>
@@ -2758,6 +2766,15 @@ function updatePonyDropHUD() {
   document.getElementById('pd-score').textContent=`⭐ ${PD_STATE.score}`;
   document.getElementById('pd-level').textContent=`Level ${PD_STATE.level}`;
   document.getElementById('pd-lives').textContent=['','❤️','❤️❤️','❤️❤️❤️'][Math.max(0,PD_STATE.lives)]||'';
+  const correct = Math.floor(PD_STATE.score/10);
+  const progressInLevel = correct % 7;
+  const toNext = 7 - progressInLevel;
+  const pct = Math.round(progressInLevel/7*100);
+  document.getElementById('pd-levelup-fill').style.width = pct+'%';
+  document.getElementById('pd-levelup-label').textContent =
+    toNext === 7
+      ? `Level ${PD_STATE.level} — get 7 right to level up! 🦄`
+      : `${toNext} more correct → Level ${PD_STATE.level+1} 🦄`;
 }
 
 function endPonyDropGame() {
