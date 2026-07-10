@@ -2599,6 +2599,18 @@ const PD_BG = [
   ['#450a0a','#991b1b'], // 8 deep red
 ];
 
+// Pony evolves each level — shown in level-up flash
+const PD_PONIES = [
+  { emoji:'🐴', name:'Baby Pony' },
+  { emoji:'🐎', name:'Racing Pony' },
+  { emoji:'🦄', name:'Unicorn!' },
+  { emoji:'🌟', name:'Star Pony!' },
+  { emoji:'🎠', name:'Magic Pony!' },
+  { emoji:'🌈', name:'Rainbow Pony!' },
+  { emoji:'💫', name:'Galaxy Pony!!' },
+  { emoji:'👑', name:'Queen Pony!!!' },
+];
+
 let pdTyped = '';
 
 function pdKey(k) {
@@ -2678,7 +2690,7 @@ function startPonyDrop() {
     running:false, level:1, score:0, lives:3,
     blocks:[], lastSpawn:0, spawnMs:cfg.spawnMs,
     speed:cfg.speed, lanes:cfg.lanes, maxBlocks:cfg.maxBlocks,
-    pony:{ x:W/2, y:H-44, anim:0, jump:0, emoji:'🦄' },
+    pony:{ x:W/2, y:H-44, anim:0, jump:0, emoji:PD_PONIES[0].emoji },
     sparks:[], bgStars:[], W, H, dpr,
     focusedBlock:null,
     combo:0, levelFlash:0, levelFlashText:'',
@@ -2904,8 +2916,10 @@ function submitPonyAnswer() {
       const cfg = pdLevelConfig(PD_STATE.level);
       PD_STATE.speed=cfg.speed; PD_STATE.spawnMs=cfg.spawnMs;
       PD_STATE.lanes=cfg.lanes; PD_STATE.maxBlocks=cfg.maxBlocks;
+      const ponyData = PD_PONIES[Math.min(PD_STATE.level-1, PD_PONIES.length-1)];
+      PD_STATE.pony.emoji = ponyData.emoji;
       PD_STATE.levelFlash = 55;
-      PD_STATE.levelFlashText = `LEVEL ${PD_STATE.level}!`;
+      PD_STATE.levelFlashText = `LEVEL ${PD_STATE.level}! ${ponyData.name}`;
       // Rain sparks across whole canvas
       for(let i=0;i<6;i++) spawnSparks(
         {x: (i+0.5)*(PD_STATE.W/6), y: PD_STATE.H*0.4, sparks:PD_STATE.sparks},
