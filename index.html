@@ -416,7 +416,14 @@ input:checked + .slider:before { transform: translateX(22px); }
   </div>
 
   <div class="card text-center">
-    <div class="big-text" id="math-problem" style="margin: 10px 0 20px;">3 × 4 = ?</div>
+    <div class="big-text" id="math-problem" style="margin: 10px 0 16px;">3 × 4 = ?</div>
+    <!-- Timer -->
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+      <span id="math-timer-num" style="font-size:1.3rem;font-weight:900;min-width:28px;color:#22c55e;transition:color .3s;">10</span>
+      <div style="flex:1;background:#f0f0f0;border-radius:99px;height:10px;overflow:hidden;">
+        <div id="math-timer-bar" style="height:100%;border-radius:99px;background:#22c55e;width:100%;transition:width .1s linear,background .3s;"></div>
+      </div>
+    </div>
     <input class="answer-input" id="math-input" type="text" inputmode="numeric" pattern="[0-9]*"
       placeholder="Your answer" autocomplete="off" autocorrect="off" spellcheck="false"
       onkeydown="if(event.key==='Enter') submitMathAnswer()">
@@ -1125,19 +1132,47 @@ function loadMathQuestion() {
   setFeedback('math-feedback', '', 'hidden');
   updateMathHUD();
 
-  // Timed mode
-  if (MATH_STATE.timedTimeout) clearTimeout(MATH_STATE.timedTimeout);
-  const timed = lsGet('timed_mode', false);
-  if (timed) {
-    MATH_STATE.timedTimeout = setTimeout(() => {
+  // Countdown timer
+  startMathTimer();
+}
+
+const MATH_TIMER_SEC = 10;
+function startMathTimer() {
+  stopMathTimer();
+  MATH_STATE.timerStart = Date.now();
+  MATH_STATE.timerInterval = setInterval(() => {
+    if (MATH_STATE.answered) { stopMathTimer(); return; }
+    const elapsed = (Date.now() - MATH_STATE.timerStart) / 1000;
+    const remaining = Math.max(0, MATH_TIMER_SEC - elapsed);
+    const pct = (remaining / MATH_TIMER_SEC) * 100;
+    const numEl = document.getElementById('math-timer-num');
+    const barEl = document.getElementById('math-timer-bar');
+    if (!numEl) { stopMathTimer(); return; }
+    numEl.textContent = Math.ceil(remaining);
+    barEl.style.width = pct + '%';
+    // Color: green → yellow → orange → red
+    const color = remaining > 6 ? '#22c55e' : remaining > 3 ? '#f59e0b' : '#ef4444';
+    numEl.style.color = color;
+    barEl.style.background = color;
+    if (remaining <= 0) {
+      stopMathTimer();
       if (!MATH_STATE.answered) {
-        setFeedback('math-feedback', `⏰ Time's up! The answer was ${MATH_STATE.current.ans}. You've got this!`, 'wrong');
         MATH_STATE.answered = true;
         recordMathMiss(MATH_STATE.current);
+        setFeedback('math-feedback', `⏰ Time's up! ${MATH_STATE.current.a} × ${MATH_STATE.current.b} = ${MATH_STATE.current.ans}`, 'wrong');
         setTimeout(advanceMath, 1800);
       }
-    }, 30000);
-  }
+    }
+  }, 100);
+}
+
+function stopMathTimer() {
+  if (MATH_STATE.timerInterval) { clearInterval(MATH_STATE.timerInterval); MATH_STATE.timerInterval = null; }
+  if (MATH_STATE.timedTimeout) { stopMathTimer(); MATH_STATE.timedTimeout = null; }
+  const numEl = document.getElementById('math-timer-num');
+  const barEl = document.getElementById('math-timer-bar');
+  if (numEl) { numEl.textContent = MATH_TIMER_SEC; numEl.style.color = '#22c55e'; }
+  if (barEl) { barEl.style.width = '100%'; barEl.style.background = '#22c55e'; }
 }
 
 function submitMathAnswer() {
@@ -1171,7 +1206,7 @@ function submitMathAnswer() {
     if (MATH_STATE.streak > lsGet('math_best_streak', 0)) lsSet('math_best_streak', MATH_STATE.streak);
     MATH_STATE.answered = true;
     recordMathHit(MATH_STATE.current);
-    clearTimeout(MATH_STATE.timedTimeout);
+    stopMathTimer();
 
     const msgs = ['Nice work! ✅', 'You got it! 🌟', 'Excellent! 🐶', 'Perfect! ⭐', 'Way to go! 🎉'];
     setFeedback('math-feedback', msgs[Math.floor(Math.random() * msgs.length)], 'correct');
@@ -1190,7 +1225,7 @@ function submitMathAnswer() {
       MATH_STATE.sessionCount++;
       MATH_STATE.streak = 0;
       recordMathMiss(MATH_STATE.current);
-      clearTimeout(MATH_STATE.timedTimeout);
+      stopMathTimer();
       setFeedback('math-feedback', `The answer is <strong>${correct}</strong>. Type it to keep going! ✍️`, 'info');
       updateMathHUD();
       input.value = '';
@@ -1266,7 +1301,7 @@ function updateMathHUD() {
 }
 
 function endMathSession() {
-  clearTimeout(MATH_STATE.timedTimeout);
+  stopMathTimer();
   checkAndAwardStickers();
   showScreen('screen-math-home');
 }
