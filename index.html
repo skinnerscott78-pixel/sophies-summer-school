@@ -674,13 +674,10 @@ input:checked + .slider:before { transform: translateX(22px); }
         <span class="score-pill" style="background:#f3e8ff;border-color:#a855f7;color:#7e22ce;" id="pd-level">Level 1</span>
         <span class="score-pill" id="pd-lives">❤️❤️❤️</span>
       </div>
-      <div id="pd-levelup-bar" style="margin-top:8px;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
-          <span style="font-size:.75rem;color:#a855f7;font-weight:700;" id="pd-levelup-label">7 correct → Level 2 🦄</span>
-        </div>
-        <div style="background:#f3e8ff;border-radius:99px;height:8px;overflow:hidden;">
-          <div id="pd-levelup-fill" style="height:100%;border-radius:99px;background:linear-gradient(90deg,#a855f7,#ec4899);width:0%;transition:width .3s;"></div>
-        </div>
+      <div style="margin-top:10px;text-align:center;">
+        <div style="font-size:.72rem;color:#a855f7;font-weight:700;margin-bottom:6px;" id="pd-levelup-label">Get 7 right to reach Level 2! 🦄</div>
+        <div id="pd-stars" style="display:flex;gap:6px;justify-content:center;"></div>
+        <div style="font-size:.7rem;color:#c084fc;margin-top:5px;" id="pd-combo-label"></div>
       </div>
     </div>
     <div style="margin:0 auto;max-width:480px;">
@@ -2483,6 +2480,18 @@ function renderStickerBook() {
    PONY DROP — falling × problems game
 ════════════════════════════════════════════════ */
 
+// Background gradient pairs per level (cycles after 8)
+const PD_BG = [
+  ['#2d1060','#6b21a8'], // 1 deep purple
+  ['#1e3a5f','#1d4ed8'], // 2 navy blue
+  ['#064e3b','#065f46'], // 3 deep green
+  ['#7c2d12','#b45309'], // 4 burnt orange
+  ['#4a044e','#86198f'], // 5 magenta
+  ['#0f172a','#1e40af'], // 6 midnight blue
+  ['#1a2e05','#3f6212'], // 7 forest
+  ['#450a0a','#991b1b'], // 8 deep red
+];
+
 const PD_COLORS = [
   ['#f9a8d4','#be185d'], // pink
   ['#c4b5fd','#6d28d9'], // purple
@@ -2551,6 +2560,7 @@ function startPonyDrop() {
     pony:{ x:W/2, y:H-44, anim:0, jump:0, emoji:'🦄' },
     sparks:[], bgStars:[], W, H, dpr,
     focusedBlock:null,
+    combo:0, levelFlash:0, levelFlashText:'',
   };
 
   // Scatter background stars
@@ -2579,9 +2589,10 @@ function pdLoop(ts) {
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr,0,0,dpr,0,0);
 
-  // BG gradient
+  // BG gradient — shifts each level
+  const bgPair = PD_BG[(PD_STATE.level-1) % PD_BG.length];
   const bg = ctx.createLinearGradient(0,0,0,H);
-  bg.addColorStop(0,'#2d1060'); bg.addColorStop(1,'#6b21a8');
+  bg.addColorStop(0,bgPair[0]); bg.addColorStop(1,bgPair[1]);
   ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
 
   // Twinkling stars
@@ -2614,6 +2625,7 @@ function pdLoop(ts) {
     if(blk.y + blk.h/2 >= H-90) {
       blk.done=true; blk.wrong=true;
       PD_STATE.lives--;
+      PD_STATE.combo=0;
       ponyWobble();
       updatePonyDropHUD();
       spawnSparks(blk, '#ef4444', 8);
@@ -2633,6 +2645,20 @@ function pdLoop(ts) {
 
   // Global sparks
   drawSparks(ctx, PD_STATE);
+
+  // Level-up flash
+  if(PD_STATE.levelFlash > 0) {
+    const a = Math.min(1, PD_STATE.levelFlash/20);
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#fff';
+    ctx.font = `bold ${Math.round(W*0.11)}px system-ui`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(PD_STATE.levelFlashText, W/2, H/2 - 20);
+    ctx.font = `bold ${Math.round(W*0.07)}px system-ui`;
+    ctx.fillText('🦄 Keep going!', W/2, H/2 + Math.round(W*0.1));
+    ctx.globalAlpha = 1;
+    PD_STATE.levelFlash--;
+  }
 
   pdAnimFrame = requestAnimationFrame(pdLoop);
 }
@@ -2730,35 +2756,47 @@ function submitPonyAnswer() {
 
   if(typed === blk.ans) {
     blk.done=true;
-    PD_STATE.score+=10;
+    PD_STATE.combo++;
+    // Combo bonus: +5 extra every 3 in a row
+    const bonus = PD_STATE.combo >= 3 ? 5 : 0;
+    PD_STATE.score += 10 + bonus;
     ponyJump();
     spawnSparks({x:blk.x, y:blk.y, sparks:blk.sparks=[]}, '#fde68a', 18);
     spawnSparks({x:PD_STATE.pony.x, y:PD_STATE.pony.y-20, sparks:PD_STATE.sparks}, '#f9a8d4', 10);
-    setFeedback('pd-feedback','✅ Yes! +10','correct');
-    setTimeout(()=>setFeedback('pd-feedback','','hidden'),700);
+
+    if(PD_STATE.combo >= 3) {
+      setFeedback('pd-feedback', `🔥 ${PD_STATE.combo} combo! +${10+bonus}`, 'correct');
+    } else {
+      setFeedback('pd-feedback', `✅ +${10+bonus}`, 'correct');
+    }
+    setTimeout(()=>setFeedback('pd-feedback','','hidden'), 700);
 
     // Level up every 7 correct
-    const correct = Math.floor(PD_STATE.score/10);
-    const newLevel = Math.floor(correct/7)+1;
+    const correct = Math.floor(PD_STATE.score / 10);
+    const newLevel = Math.floor(correct / 7) + 1;
     if(newLevel > PD_STATE.level) {
       PD_STATE.level = newLevel;
       const cfg = pdLevelConfig(PD_STATE.level);
       PD_STATE.speed=cfg.speed; PD_STATE.spawnMs=cfg.spawnMs;
       PD_STATE.lanes=cfg.lanes; PD_STATE.maxBlocks=cfg.maxBlocks;
-      setFeedback('pd-feedback',`🦄 Level ${PD_STATE.level}! Faster!`,'correct');
-      setTimeout(()=>setFeedback('pd-feedback','','hidden'),1100);
+      PD_STATE.levelFlash = 55;
+      PD_STATE.levelFlashText = `LEVEL ${PD_STATE.level}!`;
+      // Rain sparks across whole canvas
+      for(let i=0;i<6;i++) spawnSparks(
+        {x: (i+0.5)*(PD_STATE.W/6), y: PD_STATE.H*0.4, sparks:PD_STATE.sparks},
+        ['#fde68a','#f9a8d4','#a5f3fc','#bbf7d0'][i%4], 12);
     }
     updatePonyDropHUD();
   } else {
-    blk.flash=12;
+    blk.flash=12; blk.done=true;
+    PD_STATE.combo = 0;
     PD_STATE.lives--;
     ponyWobble();
-    setFeedback('pd-feedback',`Not quite! It's ${blk.ans}`,'wrong');
-    setTimeout(()=>setFeedback('pd-feedback','','hidden'),1400);
-    blk.done=true;
+    setFeedback('pd-feedback', `Oops! ${blk.a} × ${blk.b} = ${blk.ans}`, 'wrong');
+    setTimeout(()=>setFeedback('pd-feedback','','hidden'), 1600);
     spawnSparks({x:blk.x, y:blk.y, sparks:blk.sparks=[]}, '#ef4444', 10);
     updatePonyDropHUD();
-    if(PD_STATE.lives<=0) { setTimeout(endPonyDropGame,600); }
+    if(PD_STATE.lives<=0) { setTimeout(endPonyDropGame, 600); }
   }
 }
 
@@ -2766,15 +2804,34 @@ function updatePonyDropHUD() {
   document.getElementById('pd-score').textContent=`⭐ ${PD_STATE.score}`;
   document.getElementById('pd-level').textContent=`Level ${PD_STATE.level}`;
   document.getElementById('pd-lives').textContent=['','❤️','❤️❤️','❤️❤️❤️'][Math.max(0,PD_STATE.lives)]||'';
+
   const correct = Math.floor(PD_STATE.score/10);
   const progressInLevel = correct % 7;
   const toNext = 7 - progressInLevel;
-  const pct = Math.round(progressInLevel/7*100);
-  document.getElementById('pd-levelup-fill').style.width = pct+'%';
+
+  // 7 stars that fill in one by one
+  let stars = '';
+  for(let i=0;i<7;i++) {
+    stars += `<span style="font-size:1.4rem;transition:transform .2s;transform:scale(${i<progressInLevel?1.15:0.75});filter:${i<progressInLevel?'none':'grayscale(1) opacity(.25)'}">${i<progressInLevel?'⭐':'☆'}</span>`;
+  }
+  document.getElementById('pd-stars').innerHTML = stars;
+
   document.getElementById('pd-levelup-label').textContent =
     toNext === 7
-      ? `Level ${PD_STATE.level} — get 7 right to level up! 🦄`
-      : `${toNext} more correct → Level ${PD_STATE.level+1} 🦄`;
+      ? `Level ${PD_STATE.level} — collect 7 ⭐ to level up!`
+      : `${toNext} more ⭐ → Level ${PD_STATE.level+1}!`;
+
+  // Combo label
+  const comboEl = document.getElementById('pd-combo-label');
+  if(PD_STATE.combo >= 3) {
+    comboEl.textContent = `🔥 ${PD_STATE.combo}× combo — bonus points!`;
+    comboEl.style.color = '#f97316';
+    comboEl.style.fontWeight = '800';
+  } else {
+    comboEl.textContent = PD_STATE.combo === 2 ? '1 more in a row = COMBO bonus! 🔥' : '';
+    comboEl.style.color = '#c084fc';
+    comboEl.style.fontWeight = '600';
+  }
 }
 
 function endPonyDropGame() {
