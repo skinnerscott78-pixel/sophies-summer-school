@@ -653,37 +653,42 @@ input:checked + .slider:before { transform: translateX(22px); }
      SCREEN: PONY DROP
 ══════════════════════════════════════════ -->
 <div id="screen-ponydrop" class="screen">
-  <div class="card" style="padding:10px 14px;">
-    <div class="problem-meta">
-      <button class="btn outline" style="padding:8px 16px; font-size:.85rem;" onclick="endPonyDrop()">← Back</button>
-      <span class="score-pill" id="pd-score">⭐ 0</span>
-      <span class="score-pill" style="background:#f3e8ff; border-color:#a855f7; color:#7e22ce;" id="pd-level">Level 1</span>
-      <span class="score-pill" id="pd-lives">❤️❤️❤️</span>
+
+  <!-- ── PICKER (shown before game starts) ── -->
+  <div id="pd-picker" class="card text-center">
+    <button class="btn outline" style="margin-bottom:14px;padding:10px 20px;font-size:.9rem;" onclick="showScreen('screen-home')">← Home</button>
+    <div style="font-size:3.5rem;line-height:1;">🦄</div>
+    <h2 style="margin:10px 0 4px;">Pony Drop</h2>
+    <p class="muted" style="margin-bottom:18px;">Catch the falling × problems before they land!</p>
+    <p style="font-weight:700;margin-bottom:10px;color:#7e22ce;">Pick a times table to practice:</p>
+    <div id="pd-table-select" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px;"></div>
+    <button class="btn" style="width:100%;background:linear-gradient(135deg,#a855f7,#ec4899);font-size:1.15rem;padding:16px;" onclick="startPonyDrop()">Let's Go! 🦄</button>
+  </div>
+
+  <!-- ── GAME (shown during play) ── -->
+  <div id="pd-game" style="display:none;">
+    <div class="card" style="padding:10px 14px;">
+      <div class="problem-meta">
+        <button class="btn outline" style="padding:8px 16px;font-size:.85rem;" onclick="endPonyDrop()">← Back</button>
+        <span class="score-pill" id="pd-score">⭐ 0</span>
+        <span class="score-pill" style="background:#f3e8ff;border-color:#a855f7;color:#7e22ce;" id="pd-level">Level 1</span>
+        <span class="score-pill" id="pd-lives">❤️❤️❤️</span>
+      </div>
+    </div>
+    <div style="margin:0 auto;max-width:480px;">
+      <canvas id="pd-canvas" style="width:100%;border-radius:18px;display:block;"></canvas>
+    </div>
+    <div class="card" style="margin-top:10px;">
+      <div style="display:flex;gap:8px;align-items:center;">
+        <input id="pd-input" class="answer-input" type="text" inputmode="numeric" pattern="[0-9]*"
+          placeholder="Type your answer…" autocomplete="off" autocorrect="off" spellcheck="false"
+          style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')submitPonyAnswer()">
+        <button class="btn" style="padding:14px 24px;font-size:1.2rem;background:linear-gradient(135deg,#a855f7,#ec4899);" onclick="submitPonyAnswer()">✓</button>
+      </div>
+      <div class="feedback hidden" id="pd-feedback" style="margin-top:8px;"></div>
     </div>
   </div>
-  <div style="position:relative; margin:0 auto; max-width:420px;">
-    <canvas id="pd-canvas" style="width:100%; border-radius:18px; display:block;"></canvas>
-    <div id="pd-start-overlay" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(168,85,247,.82);border-radius:18px;gap:14px;">
-      <div style="font-size:3rem;">🦄</div>
-      <div style="color:#fff;font-size:1.3rem;font-weight:900;text-align:center;padding:0 20px;">Pony Drop<br><span style="font-size:.85rem;font-weight:600;opacity:.9;">Answer the × problems before they land!</span></div>
-      <div id="pd-table-select" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 16px;"></div>
-      <button class="btn" style="background:#fff;color:#7e22ce;font-weight:900;font-size:1.1rem;padding:14px 36px;" onclick="startPonyDrop()">Let's Go! 🦄</button>
-    </div>
-  </div>
-  <div class="card" style="margin-top:10px;">
-    <div style="display:flex;gap:8px;align-items:center;">
-      <input id="pd-input" class="answer-input" type="text" inputmode="numeric" pattern="[0-9]*"
-        placeholder="Answer…" autocomplete="off" autocorrect="off" spellcheck="false"
-        style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')submitPonyAnswer()">
-      <button class="btn" style="padding:14px 22px;font-size:1.1rem;" onclick="submitPonyAnswer()">✓</button>
-    </div>
-    <div class="feedback hidden" id="pd-feedback" style="margin-top:8px;"></div>
-  </div>
-  <div class="dpad" style="margin-top:6px; display:none;" id="pd-dpad">
-    <div></div>
-    <button class="dpad-btn" style="background:linear-gradient(135deg,#a855f7,#ec4899);" onclick="submitPonyAnswer()">✓</button>
-    <div></div>
-  </div>
+
 </div>
 
 <div id="screen-starfall" class="screen">
@@ -2486,20 +2491,21 @@ let pdSelectedTable = 0; // 0 = mixed
 function initPonyDropTableSelect() {
   const wrap = document.getElementById('pd-table-select');
   if (!wrap) return;
+  document.getElementById('pd-picker').style.display = '';
+  document.getElementById('pd-game').style.display = 'none';
   const opts = [{label:'🦄 Mix', val:0}];
   for (let i=2;i<=12;i++) opts.push({label:`×${i}`, val:i});
   wrap.innerHTML = opts.map(o =>
-    `<button onclick="pdSelectTable(${o.val},this)" class="btn outline" style="padding:6px 12px;font-size:.8rem;border-radius:20px;${pdSelectedTable===o.val?'background:#fff;color:#7e22ce;border-color:#fff;font-weight:900;':''}">${o.label}</button>`
+    `<button onclick="pdSelectTable(${o.val},this)" class="btn${pdSelectedTable===o.val?' ':' outline'}" style="padding:10px 6px;font-size:.9rem;border-radius:14px;">${o.label}</button>`
   ).join('');
 }
 
 function pdSelectTable(val, btn) {
   pdSelectedTable = val;
   document.querySelectorAll('#pd-table-select .btn').forEach(b => {
-    b.style.background=''; b.style.color=''; b.style.borderColor=''; b.style.fontWeight='';
+    b.classList.remove('btn'); b.classList.add('btn','outline');
   });
-  btn.style.background='#fff'; btn.style.color='#7e22ce';
-  btn.style.borderColor='#fff'; btn.style.fontWeight='900';
+  btn.classList.remove('outline');
 }
 
 function pdMakeBlock(canvasW, canvasH) {
@@ -2546,7 +2552,8 @@ function startPonyDrop() {
     sp:0.3+Math.random()*0.6,
   });
 
-  document.getElementById('pd-start-overlay').style.display='none';
+  document.getElementById('pd-picker').style.display='none';
+  document.getElementById('pd-game').style.display='';
   document.getElementById('pd-input').value='';
   document.getElementById('pd-input').focus();
   updatePonyDropHUD();
@@ -2763,8 +2770,7 @@ function endPonyDropGame() {
   setTimeout(()=>showOverlay('🦄','Game Over!',
     `You scored ${PD_STATE.score} point${PD_STATE.score!==1?'s':''}! Keep practicing! ⭐`,
     'Try Again 🦄',
-    ()=>{ document.getElementById('pd-start-overlay').style.display='flex';
-          initPonyDropTableSelect(); }), 400);
+    ()=>initPonyDropTableSelect()), 400);
 }
 
 function endPonyDrop() {
