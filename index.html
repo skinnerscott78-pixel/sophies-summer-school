@@ -395,6 +395,12 @@ input:checked + .slider:before { transform: translateX(22px); }
   </div>
 
   <div class="card">
+    <h3>⏱️ Timer Speed</h3>
+    <p class="muted" style="margin-bottom:10px;font-size:.85rem;">How much time per question?</p>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;" id="math-timer-picker"></div>
+  </div>
+
+  <div class="card">
     <h3>📊 Math Progress</h3>
     <div id="math-op-progress"></div>
   </div>
@@ -959,7 +965,7 @@ function showScreen(id) {
   document.getElementById(id).classList.add('active');
   window.scrollTo(0, 0);
   if (id === 'screen-home') { renderDailyStreak(); renderHomeProgress(); renderHomeRecords(); renderDailyChallengeBtn(); }
-  if (id === 'screen-math-home') renderMathOpProgress();
+  if (id === 'screen-math-home') { renderMathOpProgress(); renderMathTimerPicker(); }
   if (id === 'screen-spell-home') renderSpellLists();
   if (id === 'screen-parent') renderParentScreen();
   if (id === 'screen-starfall') { renderStarfallListButtons(); }
@@ -1136,22 +1142,59 @@ function loadMathQuestion() {
   startMathTimer();
 }
 
-const MATH_TIMER_SEC = 10;
+const MATH_TIMER_OPTIONS = [
+  { label:'None', sec:0,  emoji:'🚫', desc:'No timer' },
+  { label:'Slow', sec:15, emoji:'🐢', desc:'15 sec' },
+  { label:'Medium', sec:10, emoji:'🐇', desc:'10 sec' },
+  { label:'Hard', sec:5,  emoji:'⚡', desc:'5 sec' },
+];
+
+function renderMathTimerPicker() {
+  const wrap = document.getElementById('math-timer-picker');
+  if (!wrap) return;
+  const cur = lsGet('math_timer_speed', 10);
+  wrap.innerHTML = MATH_TIMER_OPTIONS.map(o =>
+    `<button onclick="setMathTimerSpeed(${o.sec})" class="btn${cur===o.sec?'':' outline'}"
+      style="flex-direction:column;padding:10px 4px;gap:3px;font-size:.8rem;border-radius:14px;">
+      <span style="font-size:1.4rem;">${o.emoji}</span>
+      <span style="font-weight:800;">${o.label}</span>
+      <span style="font-size:.65rem;opacity:.75;">${o.desc}</span>
+    </button>`
+  ).join('');
+}
+
+function setMathTimerSpeed(sec) {
+  lsSet('math_timer_speed', sec);
+  renderMathTimerPicker();
+}
+
+function getMathTimerSec() { return lsGet('math_timer_speed', 10); }
+
 function startMathTimer() {
   stopMathTimer();
+  const timerSec = getMathTimerSec();
+  const numEl = document.getElementById('math-timer-num');
+  const barEl = document.getElementById('math-timer-bar');
+  const wrap = numEl && numEl.parentElement.parentElement;
+  if (timerSec === 0) {
+    // No timer — hide the bar
+    if (wrap) wrap.style.display = 'none';
+    return;
+  }
+  if (wrap) wrap.style.display = '';
   MATH_STATE.timerStart = Date.now();
   MATH_STATE.timerInterval = setInterval(() => {
     if (MATH_STATE.answered) { stopMathTimer(); return; }
     const elapsed = (Date.now() - MATH_STATE.timerStart) / 1000;
-    const remaining = Math.max(0, MATH_TIMER_SEC - elapsed);
-    const pct = (remaining / MATH_TIMER_SEC) * 100;
+    const remaining = Math.max(0, timerSec - elapsed);
+    const pct = (remaining / timerSec) * 100;
     const numEl = document.getElementById('math-timer-num');
     const barEl = document.getElementById('math-timer-bar');
     if (!numEl) { stopMathTimer(); return; }
     numEl.textContent = Math.ceil(remaining);
     barEl.style.width = pct + '%';
-    // Color: green → yellow → orange → red
-    const color = remaining > 6 ? '#22c55e' : remaining > 3 ? '#f59e0b' : '#ef4444';
+    // Color: green → yellow → red (scaled to timer length)
+    const color = remaining > timerSec*0.5 ? '#22c55e' : remaining > timerSec*0.25 ? '#f59e0b' : '#ef4444';
     numEl.style.color = color;
     barEl.style.background = color;
     if (remaining <= 0) {
@@ -1171,7 +1214,8 @@ function stopMathTimer() {
   if (MATH_STATE.timedTimeout) { stopMathTimer(); MATH_STATE.timedTimeout = null; }
   const numEl = document.getElementById('math-timer-num');
   const barEl = document.getElementById('math-timer-bar');
-  if (numEl) { numEl.textContent = MATH_TIMER_SEC; numEl.style.color = '#22c55e'; }
+  const sec = getMathTimerSec();
+  if (numEl) { numEl.textContent = sec || '–'; numEl.style.color = '#22c55e'; }
   if (barEl) { barEl.style.width = '100%'; barEl.style.background = '#22c55e'; }
 }
 
