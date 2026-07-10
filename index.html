@@ -328,6 +328,9 @@ input:checked + .slider:before { transform: translateX(22px); }
       <button class="btn big" style="background:#0891B2; box-shadow:0 4px 12px rgba(8,145,178,.35);" onclick="showScreen('screen-starfall')">
         ⭐ Spelling Starfall
       </button>
+      <button class="btn big" style="background:linear-gradient(135deg,#a855f7,#ec4899); box-shadow:0 4px 12px rgba(168,85,247,.38);" onclick="showScreen('screen-ponydrop')">
+        🦄 Pony Drop
+      </button>
       <div id="daily-challenge-btn-wrap"></div>
       <button class="btn big" style="background:linear-gradient(135deg,#F472B6,#FB923C); box-shadow:0 4px 12px rgba(244,114,182,.35);" onclick="showScreen('screen-stickers')">
         🐾 My Sticker Book
@@ -646,6 +649,43 @@ input:checked + .slider:before { transform: translateX(22px); }
 <!-- ══════════════════════════════════════════
      SCREEN: SPELLING STARFALL
 ══════════════════════════════════════════ -->
+<!-- ══════════════════════════════════════════
+     SCREEN: PONY DROP
+══════════════════════════════════════════ -->
+<div id="screen-ponydrop" class="screen">
+  <div class="card" style="padding:10px 14px;">
+    <div class="problem-meta">
+      <button class="btn outline" style="padding:8px 16px; font-size:.85rem;" onclick="endPonyDrop()">← Back</button>
+      <span class="score-pill" id="pd-score">⭐ 0</span>
+      <span class="score-pill" style="background:#f3e8ff; border-color:#a855f7; color:#7e22ce;" id="pd-level">Level 1</span>
+      <span class="score-pill" id="pd-lives">❤️❤️❤️</span>
+    </div>
+  </div>
+  <div style="position:relative; margin:0 auto; max-width:420px;">
+    <canvas id="pd-canvas" style="width:100%; border-radius:18px; display:block;"></canvas>
+    <div id="pd-start-overlay" style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(168,85,247,.82);border-radius:18px;gap:14px;">
+      <div style="font-size:3rem;">🦄</div>
+      <div style="color:#fff;font-size:1.3rem;font-weight:900;text-align:center;padding:0 20px;">Pony Drop<br><span style="font-size:.85rem;font-weight:600;opacity:.9;">Answer the × problems before they land!</span></div>
+      <div id="pd-table-select" style="display:flex;flex-wrap:wrap;gap:8px;justify-content:center;padding:0 16px;"></div>
+      <button class="btn" style="background:#fff;color:#7e22ce;font-weight:900;font-size:1.1rem;padding:14px 36px;" onclick="startPonyDrop()">Let's Go! 🦄</button>
+    </div>
+  </div>
+  <div class="card" style="margin-top:10px;">
+    <div style="display:flex;gap:8px;align-items:center;">
+      <input id="pd-input" class="answer-input" type="text" inputmode="numeric" pattern="[0-9]*"
+        placeholder="Answer…" autocomplete="off" autocorrect="off" spellcheck="false"
+        style="flex:1;margin:0;" onkeydown="if(event.key==='Enter')submitPonyAnswer()">
+      <button class="btn" style="padding:14px 22px;font-size:1.1rem;" onclick="submitPonyAnswer()">✓</button>
+    </div>
+    <div class="feedback hidden" id="pd-feedback" style="margin-top:8px;"></div>
+  </div>
+  <div class="dpad" style="margin-top:6px; display:none;" id="pd-dpad">
+    <div></div>
+    <button class="dpad-btn" style="background:linear-gradient(135deg,#a855f7,#ec4899);" onclick="submitPonyAnswer()">✓</button>
+    <div></div>
+  </div>
+</div>
+
 <div id="screen-starfall" class="screen">
   <div class="card">
     <div class="problem-meta">
@@ -886,6 +926,7 @@ function showScreen(id) {
   // Stop games if navigating away
   const prevSnake = document.getElementById('screen-snake').classList.contains('active');
   const prevStarfall = document.getElementById('screen-starfall').classList.contains('active');
+  const prevPony = document.getElementById('screen-ponydrop').classList.contains('active');
   if (prevSnake && id !== 'screen-snake') {
     clearInterval(SNAKE_STATE.interval); SNAKE_STATE.running = false;
   }
@@ -893,6 +934,9 @@ function showScreen(id) {
     STARFALL_STATE.running = false;
     cancelAnimationFrame(STARFALL_STATE.animFrame);
     window.speechSynthesis && window.speechSynthesis.cancel();
+  }
+  if (prevPony && id !== 'screen-ponydrop') {
+    PD_STATE.running = false; cancelAnimationFrame(pdAnimFrame);
   }
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.getElementById(id).classList.add('active');
@@ -903,6 +947,7 @@ function showScreen(id) {
   if (id === 'screen-parent') renderParentScreen();
   if (id === 'screen-starfall') { renderStarfallListButtons(); }
   if (id === 'screen-snake') { renderSkinPicker(); }
+  if (id === 'screen-ponydrop') { initPonyDropTableSelect(); }
   if (id === 'screen-stickers') { renderStickerBook(); }
 }
 
@@ -1659,23 +1704,29 @@ function renderSkinPicker() {
 ════════════════════════════════════════════════ */
 
 function renderHomeRecords() {
-  const snakePb   = lsGet('snake_pb', 0);
+  const snakePb    = lsGet('snake_pb', 0);
   const starfallPb = lsGet('starfall_pb', 0);
-  const mathPb    = lsGet('math_pb', 0);
-  const streak    = (lsGet('daily_streak', {count:0})).count || 0;
-  const skin      = getEquippedSkin();
+  const ponyPb     = lsGet('ponydrop_pb', 0);
+  const mathPb     = lsGet('math_pb', 0);
+  const streak     = (lsGet('daily_streak', {count:0})).count || 0;
+  const skin       = getEquippedSkin();
   const el = document.getElementById('home-records');
   if (!el) return;
   el.innerHTML = `
     <div class="record-tile" style="background:var(--pink-bg);">
       <div class="rt-emoji">${skin.emoji}</div>
       <div class="rt-val">${snakePb}</div>
-      <div class="rt-lbl">Puppy Math best 🦴</div>
+      <div class="rt-lbl">Puppy Math best</div>
+    </div>
+    <div class="record-tile" style="background:#fdf4ff;">
+      <div class="rt-emoji">🦄</div>
+      <div class="rt-val">${ponyPb}</div>
+      <div class="rt-lbl">Pony Drop best</div>
     </div>
     <div class="record-tile" style="background:#EFF6FF;">
       <div class="rt-emoji">⭐</div>
       <div class="rt-val">${starfallPb}</div>
-      <div class="rt-lbl">Starfall points</div>
+      <div class="rt-lbl">Starfall best</div>
     </div>
     <div class="record-tile" style="background:#F0FDF4;">
       <div class="rt-emoji">🔥</div>
@@ -2344,7 +2395,7 @@ const STICKERS = [
   // ── Math stickers ──
   { id:'math_first',    emoji:'🔢', name:'Number Nose',    hint:'Answer 10 math facts correctly',
     c1:'#a5f3fc', c2:'#0891b2', check: () => lsGet('math_pb', 0) >= 10 },
-  { id:'math_tables',   emoji:'✖️',  name:'Times Pup',      hint:'Master a whole times table',
+  { id:'math_tables',   emoji:'🌀', name:'Times Pup',      hint:'Master a whole times table',
     c1:'#93c5fd', c2:'#3b82f6', check: () => Object.keys(lsGet('math_mastered',{})).length >= 11 },
   { id:'math_streak10', emoji:'⚡', name:'Lightning Pup',  hint:'Get a 10-streak in Math Facts',
     c1:'#fef08a', c2:'#eab308', check: () => lsGet('math_best_streak', 0) >= 10 },
@@ -2358,8 +2409,14 @@ const STICKERS = [
   // ── Puppy Math (Snake) stickers ──
   { id:'snake_first',   emoji:'🐕', name:'Bone Collector', hint:'Score 5 in Puppy Math',
     c1:'#bbf7d0', c2:'#16a34a', check: () => lsGet('snake_pb', 0) >= 5 },
-  { id:'snake_pro',     emoji:'🦮', name:'Guide Dog',      hint:'Score 20 in Puppy Math',
+  { id:'snake_pro',     emoji:'🐩', name:'Top Dog',        hint:'Score 20 in Puppy Math',
     c1:'#6ee7b7', c2:'#059669', check: () => lsGet('snake_pb', 0) >= 20 },
+
+  // ── Pony Drop stickers ──
+  { id:'pony_first',    emoji:'🦄', name:'Pony Power',     hint:'Score 30 in Pony Drop',
+    c1:'#f5d0fe', c2:'#a21caf', check: () => lsGet('ponydrop_pb', 0) >= 30 },
+  { id:'pony_pro',      emoji:'🌈', name:'Rainbow Dash',   hint:'Score 100 in Pony Drop',
+    c1:'#bfdbfe', c2:'#7c3aed', check: () => lsGet('ponydrop_pb', 0) >= 100 },
 
   // ── Spelling Starfall stickers ──
   { id:'starfall_first',emoji:'⭐', name:'Star Catcher',   hint:'Score 30 in Spelling Starfall',
@@ -2407,6 +2464,313 @@ function renderStickerBook() {
       <div class="sticker-hint">${has ? '✅ Collected!' : s.hint}</div>
     </div>`;
   }).join('');
+}
+
+/* ════════════════════════════════════════════════
+   PONY DROP — falling × problems game
+════════════════════════════════════════════════ */
+
+const PD_COLORS = [
+  ['#f9a8d4','#be185d'], // pink
+  ['#c4b5fd','#6d28d9'], // purple
+  ['#93c5fd','#1d4ed8'], // blue
+  ['#6ee7b7','#065f46'], // green
+  ['#fde68a','#b45309'], // gold
+  ['#fdba74','#c2410c'], // orange
+];
+
+let PD_STATE = {};
+let pdAnimFrame = null;
+let pdSelectedTable = 0; // 0 = mixed
+
+function initPonyDropTableSelect() {
+  const wrap = document.getElementById('pd-table-select');
+  if (!wrap) return;
+  const opts = [{label:'🦄 Mix', val:0}];
+  for (let i=2;i<=12;i++) opts.push({label:`×${i}`, val:i});
+  wrap.innerHTML = opts.map(o =>
+    `<button onclick="pdSelectTable(${o.val},this)" class="btn outline" style="padding:6px 12px;font-size:.8rem;border-radius:20px;${pdSelectedTable===o.val?'background:#fff;color:#7e22ce;border-color:#fff;font-weight:900;':''}">${o.label}</button>`
+  ).join('');
+}
+
+function pdSelectTable(val, btn) {
+  pdSelectedTable = val;
+  document.querySelectorAll('#pd-table-select .btn').forEach(b => {
+    b.style.background=''; b.style.color=''; b.style.borderColor=''; b.style.fontWeight='';
+  });
+  btn.style.background='#fff'; btn.style.color='#7e22ce';
+  btn.style.borderColor='#fff'; btn.style.fontWeight='900';
+}
+
+function pdMakeBlock(canvasW, canvasH) {
+  const a = pdSelectedTable > 0 ? pdSelectedTable : (2 + Math.floor(Math.random()*11));
+  const b = 1 + Math.floor(Math.random()*12);
+  const col = PD_COLORS[Math.floor(Math.random()*PD_COLORS.length)];
+  const lane = Math.floor(Math.random()*PD_STATE.lanes);
+  const bw = (canvasW - (PD_STATE.lanes+1)*8) / PD_STATE.lanes;
+  const x = 8 + lane*(bw+8) + bw/2;
+  return { a, b, ans:a*b, x, y:-60, w:bw-4, h:68, col, done:false, wrong:false, flash:0, sparks:[] };
+}
+
+function pdLevelConfig(level) {
+  // speed px/frame, spawnInterval frames, lanes, simultaneous blocks allowed
+  const speed = Math.min(0.55 + level*0.22, 4.2);
+  const spawnMs = Math.max(3200 - level*230, 900);
+  const lanes = level >= 7 ? 3 : level >= 4 ? 2 : 1;
+  const maxBlocks = lanes;
+  return { speed, spawnMs, lanes, maxBlocks };
+}
+
+function startPonyDrop() {
+  const canvas = document.getElementById('pd-canvas');
+  const dpr = window.devicePixelRatio||1;
+  const W = canvas.parentElement.clientWidth || 380;
+  const H = Math.round(W * 1.18);
+  canvas.width = W*dpr; canvas.height = H*dpr;
+  canvas.style.height = H+'px';
+
+  const cfg = pdLevelConfig(1);
+  PD_STATE = {
+    running:false, level:1, score:0, lives:3,
+    blocks:[], lastSpawn:0, spawnMs:cfg.spawnMs,
+    speed:cfg.speed, lanes:cfg.lanes, maxBlocks:cfg.maxBlocks,
+    pony:{ x:W/2, y:H-44, anim:0, jump:0, emoji:'🦄' },
+    sparks:[], bgStars:[], W, H, dpr,
+    focusedBlock:null,
+  };
+
+  // Scatter background stars
+  for(let i=0;i<28;i++) PD_STATE.bgStars.push({
+    x:Math.random()*W, y:Math.random()*H,
+    r:1+Math.random()*2, a:0.15+Math.random()*0.35,
+    sp:0.3+Math.random()*0.6,
+  });
+
+  document.getElementById('pd-start-overlay').style.display='none';
+  document.getElementById('pd-input').value='';
+  document.getElementById('pd-input').focus();
+  updatePonyDropHUD();
+  PD_STATE.running=true;
+  PD_STATE.lastSpawn = performance.now();
+  pdAnimFrame = requestAnimationFrame(pdLoop);
+}
+
+let pdLastTime = 0;
+function pdLoop(ts) {
+  if(!PD_STATE.running) return;
+  const dt = ts - pdLastTime; pdLastTime = ts;
+  const { W, H, dpr } = PD_STATE;
+  const canvas = document.getElementById('pd-canvas');
+  const ctx = canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+
+  // BG gradient
+  const bg = ctx.createLinearGradient(0,0,0,H);
+  bg.addColorStop(0,'#2d1060'); bg.addColorStop(1,'#6b21a8');
+  ctx.fillStyle=bg; ctx.fillRect(0,0,W,H);
+
+  // Twinkling stars
+  PD_STATE.bgStars.forEach(s => {
+    s.a += s.sp*0.02; if(s.a>0.5) s.sp=-Math.abs(s.sp); if(s.a<0.1) s.sp=Math.abs(s.sp);
+    ctx.globalAlpha=s.a; ctx.fillStyle='#fff';
+    ctx.beginPath(); ctx.arc(s.x,s.y,s.r,0,Math.PI*2); ctx.fill();
+  });
+  ctx.globalAlpha=1;
+
+  // Ground line
+  ctx.strokeStyle='rgba(255,255,255,.18)'; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(0,H-88); ctx.lineTo(W,H-88); ctx.stroke();
+
+  // Spawn new block
+  const liveBlocks = PD_STATE.blocks.filter(b=>!b.done);
+  if(liveBlocks.length < PD_STATE.maxBlocks && ts - PD_STATE.lastSpawn > PD_STATE.spawnMs) {
+    PD_STATE.blocks.push(pdMakeBlock(W,H));
+    PD_STATE.lastSpawn = ts;
+  }
+
+  // Update + draw blocks
+  let focusedBlock = null;
+  PD_STATE.blocks.forEach(blk => {
+    if(blk.done) { drawSparks(ctx, blk); return; }
+    blk.y += PD_STATE.speed;
+    if(blk.flash>0) blk.flash--;
+
+    // Hit ground
+    if(blk.y + blk.h/2 >= H-90) {
+      blk.done=true; blk.wrong=true;
+      PD_STATE.lives--;
+      ponyWobble();
+      updatePonyDropHUD();
+      spawnSparks(blk, '#ef4444', 8);
+      if(PD_STATE.lives<=0) { endPonyDropGame(); return; }
+    }
+
+    drawPonyBlock(ctx, blk, W, H);
+    if(!blk.done) focusedBlock = blk; // last drawn = bottom-most
+  });
+  PD_STATE.focusedBlock = focusedBlock;
+
+  // Clean done blocks whose sparks finished
+  PD_STATE.blocks = PD_STATE.blocks.filter(b => !b.done || b.sparks.length>0);
+
+  // Pony
+  drawPony(ctx, PD_STATE.pony, W, H);
+
+  // Global sparks
+  drawSparks(ctx, PD_STATE);
+
+  pdAnimFrame = requestAnimationFrame(pdLoop);
+}
+
+function drawPonyBlock(ctx, blk, W, H) {
+  const { x, y, w, h, col, a, b, flash } = blk;
+  const x0=x-w/2, y0=y-h/2, r=16;
+
+  // Drop shadow
+  ctx.shadowColor='rgba(0,0,0,.35)'; ctx.shadowBlur=12; ctx.shadowOffsetY=4;
+  // Body
+  ctx.fillStyle = flash>0 ? '#fff' : col[0];
+  ctx.beginPath();
+  ctx.moveTo(x0+r,y0); ctx.lineTo(x0+w-r,y0);
+  ctx.quadraticCurveTo(x0+w,y0,x0+w,y0+r);
+  ctx.lineTo(x0+w,y0+h-r); ctx.quadraticCurveTo(x0+w,y0+h,x0+w-r,y0+h);
+  ctx.lineTo(x0+r,y0+h); ctx.quadraticCurveTo(x0,y0+h,x0,y0+h-r);
+  ctx.lineTo(x0,y0+r); ctx.quadraticCurveTo(x0,y0,x0+r,y0);
+  ctx.closePath(); ctx.fill();
+  ctx.shadowColor='transparent'; ctx.shadowBlur=0; ctx.shadowOffsetY=0;
+
+  // Sheen
+  ctx.fillStyle='rgba(255,255,255,.22)';
+  ctx.beginPath(); ctx.ellipse(x-w*.15, y-h*.15, w*.28, h*.18, -0.4, 0, Math.PI*2); ctx.fill();
+
+  // Problem text
+  ctx.fillStyle = col[1];
+  ctx.font=`bold ${Math.round(w*.27)}px system-ui`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(`${a} × ${b} = ?`, x, y);
+
+  // Danger glow near bottom
+  const danger = Math.max(0, (blk.y - (H-200)) / 110);
+  if(danger>0) {
+    ctx.strokeStyle=`rgba(239,68,68,${Math.min(danger,0.85)})`;
+    ctx.lineWidth=3+danger*3;
+    ctx.beginPath();
+    ctx.moveTo(x0+r,y0); ctx.lineTo(x0+w-r,y0);
+    ctx.quadraticCurveTo(x0+w,y0,x0+w,y0+r);
+    ctx.lineTo(x0+w,y0+h-r); ctx.quadraticCurveTo(x0+w,y0+h,x0+w-r,y0+h);
+    ctx.lineTo(x0+r,y0+h); ctx.quadraticCurveTo(x0,y0+h,x0,y0+h-r);
+    ctx.lineTo(x0,y0+r); ctx.quadraticCurveTo(x0,y0,x0+r,y0);
+    ctx.closePath(); ctx.stroke();
+  }
+}
+
+function drawPony(ctx, pony, W, H) {
+  pony.anim = (pony.anim||0)+1;
+  if(pony.jump>0) { pony.y-=4; pony.jump--; } else if(pony.y<H-44) { pony.y+=3; }
+  const bob = Math.sin(pony.anim*0.08)*3;
+  ctx.font=`${48}px system-ui`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(pony.emoji, pony.x, pony.y+bob);
+}
+
+function ponyJump() { PD_STATE.pony.jump=14; }
+function ponyWobble() {
+  const p=PD_STATE.pony; let t=0;
+  const orig=p.x;
+  const shake=setInterval(()=>{ p.x=orig+(t%2===0?8:-8); t++; if(t>6){p.x=orig;clearInterval(shake);}},60);
+}
+
+function spawnSparks(target, color, count) {
+  const arr = target.sparks || PD_STATE.sparks;
+  for(let i=0;i<count;i++) arr.push({
+    x:target.x||PD_STATE.pony.x, y:target.y||PD_STATE.pony.y-20,
+    vx:(Math.random()-0.5)*7, vy:-3-Math.random()*5,
+    life:35+Math.random()*20, col:color,
+  });
+}
+
+function drawSparks(ctx, target) {
+  if(!target.sparks) return;
+  target.sparks = target.sparks.filter(s=>{
+    s.x+=s.vx; s.y+=s.vy; s.vy+=0.22; s.life--;
+    ctx.globalAlpha=Math.max(0,s.life/50);
+    ctx.fillStyle=s.col;
+    ctx.beginPath(); ctx.arc(s.x,s.y,3,0,Math.PI*2); ctx.fill();
+    return s.life>0;
+  });
+  ctx.globalAlpha=1;
+}
+
+function submitPonyAnswer() {
+  if(!PD_STATE.running) return;
+  const input = document.getElementById('pd-input');
+  const typed = parseInt(input.value.trim(), 10);
+  input.value=''; input.focus();
+  if(isNaN(typed)) return;
+
+  // Find the lowest block (closest to ground) that hasn't been answered
+  const live = PD_STATE.blocks.filter(b=>!b.done).sort((a,b)=>b.y-a.y);
+  if(!live.length) return;
+  const blk = live[0];
+
+  if(typed === blk.ans) {
+    blk.done=true;
+    PD_STATE.score+=10;
+    ponyJump();
+    spawnSparks({x:blk.x, y:blk.y, sparks:blk.sparks=[]}, '#fde68a', 18);
+    spawnSparks({x:PD_STATE.pony.x, y:PD_STATE.pony.y-20, sparks:PD_STATE.sparks}, '#f9a8d4', 10);
+    setFeedback('pd-feedback','✅ Yes! +10','correct');
+    setTimeout(()=>setFeedback('pd-feedback','','hidden'),700);
+
+    // Level up every 7 correct
+    const correct = Math.floor(PD_STATE.score/10);
+    const newLevel = Math.floor(correct/7)+1;
+    if(newLevel > PD_STATE.level) {
+      PD_STATE.level = newLevel;
+      const cfg = pdLevelConfig(PD_STATE.level);
+      PD_STATE.speed=cfg.speed; PD_STATE.spawnMs=cfg.spawnMs;
+      PD_STATE.lanes=cfg.lanes; PD_STATE.maxBlocks=cfg.maxBlocks;
+      setFeedback('pd-feedback',`🦄 Level ${PD_STATE.level}! Faster!`,'correct');
+      setTimeout(()=>setFeedback('pd-feedback','','hidden'),1100);
+    }
+    updatePonyDropHUD();
+  } else {
+    blk.flash=12;
+    PD_STATE.lives--;
+    ponyWobble();
+    setFeedback('pd-feedback',`Not quite! It's ${blk.ans}`,'wrong');
+    setTimeout(()=>setFeedback('pd-feedback','','hidden'),1400);
+    blk.done=true;
+    spawnSparks({x:blk.x, y:blk.y, sparks:blk.sparks=[]}, '#ef4444', 10);
+    updatePonyDropHUD();
+    if(PD_STATE.lives<=0) { setTimeout(endPonyDropGame,600); }
+  }
+}
+
+function updatePonyDropHUD() {
+  document.getElementById('pd-score').textContent=`⭐ ${PD_STATE.score}`;
+  document.getElementById('pd-level').textContent=`Level ${PD_STATE.level}`;
+  document.getElementById('pd-lives').textContent=['','❤️','❤️❤️','❤️❤️❤️'][Math.max(0,PD_STATE.lives)]||'';
+}
+
+function endPonyDropGame() {
+  if(!PD_STATE.running) return;
+  PD_STATE.running=false;
+  cancelAnimationFrame(pdAnimFrame);
+  const pb=lsGet('ponydrop_pb',0);
+  if(PD_STATE.score>pb) lsSet('ponydrop_pb',PD_STATE.score);
+  checkAndAwardStickers();
+  setTimeout(()=>showOverlay('🦄','Game Over!',
+    `You scored ${PD_STATE.score} point${PD_STATE.score!==1?'s':''}! Keep practicing! ⭐`,
+    'Try Again 🦄',
+    ()=>{ document.getElementById('pd-start-overlay').style.display='flex';
+          initPonyDropTableSelect(); }), 400);
+}
+
+function endPonyDrop() {
+  PD_STATE.running=false;
+  cancelAnimationFrame(pdAnimFrame);
+  showScreen('screen-home');
 }
 
 /* ════════════════════════════════════════════════
