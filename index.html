@@ -335,6 +335,9 @@ input:checked + .slider:before { transform: translateX(22px); }
       <button class="btn big" style="background:linear-gradient(135deg,#a855f7,#ec4899); box-shadow:0 4px 12px rgba(168,85,247,.38);" onclick="showScreen('screen-ponydrop')">
         🦄 Pony Drop
       </button>
+      <button class="btn big" style="background:linear-gradient(135deg,#10b981,#0d9488); box-shadow:0 4px 12px rgba(16,185,129,.38);" onclick="showScreen('screen-anamala')">
+        🐾 Anamala Match
+      </button>
       <div id="daily-challenge-btn-wrap"></div>
       <button class="btn big" style="background:linear-gradient(135deg,#F472B6,#FB923C); box-shadow:0 4px 12px rgba(244,114,182,.35);" onclick="showScreen('screen-stickers')">
         🐾 My Sticker Book
@@ -776,6 +779,60 @@ input:checked + .slider:before { transform: translateX(22px); }
 </div>
 
 <!-- ══════════════════════════════════════════
+     SCREEN: ANAMALA MATCH
+══════════════════════════════════════════ -->
+<div id="screen-anamala" class="screen">
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+    <button class="btn outline" style="padding:10px 20px;font-size:.9rem;" onclick="showScreen('screen-home')">← Home</button>
+    <div style="display:flex;gap:10px;align-items:center;">
+      <span class="score-pill" id="am-pairs-display">🐾 0 / 8</span>
+      <span class="score-pill" id="am-score-display">⭐ 0</span>
+    </div>
+  </div>
+  <div id="am-start" class="card text-center" style="padding:28px 20px;">
+    <div style="font-size:3rem;margin-bottom:10px;">🐾</div>
+    <div style="font-size:1.6rem;font-weight:800;margin-bottom:8px;">Anamala Match</div>
+    <div style="font-size:1rem;color:#555;margin-bottom:18px;">Flip cards to find animal pairs!<br>When you match — answer 10 math facts to keep the pair! ⏱️ 10 seconds each</div>
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:700;margin-bottom:8px;font-size:.9rem;">Choose your math:</div>
+      <div id="am-table-select" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;"></div>
+    </div>
+    <button class="btn" style="background:linear-gradient(135deg,#10b981,#0d9488);" onclick="amStart()">Let's Play! 🐾</button>
+  </div>
+  <div id="am-game" style="display:none;">
+    <div id="am-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;"></div>
+    <button class="btn outline" style="width:100%;font-size:.9rem;padding:10px;" onclick="amReset()">🔄 New Game</button>
+  </div>
+  <!-- Math quiz overlay -->
+  <div id="am-math-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:none;align-items:center;justify-content:center;">
+    <div class="card text-center" style="width:320px;max-width:94vw;padding:28px 20px;">
+      <div id="am-math-match-emoji" style="font-size:3.5rem;margin-bottom:4px;"></div>
+      <div style="font-size:1rem;font-weight:700;color:#10b981;margin-bottom:14px;">You found a match! Answer 10 math facts to keep it!</div>
+      <div style="font-size:.9rem;color:#888;margin-bottom:8px;" id="am-math-progress">Question 1 / 10</div>
+      <div style="height:6px;background:#e5e7eb;border-radius:99px;margin-bottom:16px;overflow:hidden;">
+        <div id="am-math-timer-bar" style="height:100%;border-radius:99px;background:#10b981;width:100%;transition:width .1s linear,background .3s;"></div>
+      </div>
+      <div id="am-math-question" style="font-size:2.2rem;font-weight:800;margin-bottom:16px;"></div>
+      <input id="am-math-input" class="answer-input" type="number" inputmode="numeric" placeholder="?" autocomplete="off"
+        style="font-size:1.8rem;padding:12px;text-align:center;width:100%;box-sizing:border-box;border-radius:12px;border:2.5px solid #d1fae5;"
+        onkeydown="if(event.key==='Enter')amMathSubmit()">
+      <button class="btn" style="margin-top:12px;width:100%;background:linear-gradient(135deg,#10b981,#0d9488);" onclick="amMathSubmit()">Check ✓</button>
+      <div id="am-math-feedback" style="min-height:22px;margin-top:10px;font-weight:700;font-size:1rem;"></div>
+    </div>
+  </div>
+  <!-- Win overlay -->
+  <div id="am-win-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;align-items:center;justify-content:center;">
+    <div class="card text-center" style="width:320px;max-width:94vw;padding:32px 24px;">
+      <div style="font-size:3.5rem;margin-bottom:8px;">🎉</div>
+      <div style="font-size:1.8rem;font-weight:800;margin-bottom:8px;">You won!</div>
+      <div id="am-win-body" style="font-size:1.1rem;margin-bottom:20px;color:#555;"></div>
+      <button class="btn" style="background:linear-gradient(135deg,#10b981,#0d9488);" onclick="amReset()">Play Again 🐾</button>
+      <button class="btn outline" style="margin-top:10px;" onclick="showScreen('screen-home')">Home</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════
      OVERLAY: Celebration / Joke / Review
 ══════════════════════════════════════════ -->
 <div class="overlay hidden" id="overlay">
@@ -1002,6 +1059,7 @@ function showScreen(id) {
   if (id === 'screen-starfall') { renderStarfallListButtons(); }
   if (id === 'screen-snake') { renderSkinPicker(); }
   if (id === 'screen-ponydrop') { initPonyDropTableSelect(); renderPonyPicker(); }
+  if (id === 'screen-anamala') { amReset(); }
   if (id === 'screen-stickers') { renderStickerBook(); }
 }
 
@@ -3040,6 +3098,216 @@ function endPonyDrop() {
   PD_STATE.running=false;
   cancelAnimationFrame(pdAnimFrame);
   showScreen('screen-home');
+}
+
+/* ════════════════════════════════════════════════
+   ANAMALA MATCH
+════════════════════════════════════════════════ */
+const AM_ANIMALS = ['🐶','🐱','🐭','🐹','🐰','🐻','🐼','🐨','🐯','🦁','🐮','🐷','🐸','🐵','🐔','🐺'];
+
+let AM_STATE = {
+  cards: [], flipped: [], locked: false, matched: 0,
+  mathMode: false, mathQuestions: [], mathIdx: 0,
+  mathTimer: null, mathSec: 10, mathCorrect: 0,
+  pendingPair: [], score: 0, table: 3,
+};
+
+function amInit() {
+  const sel = document.getElementById('am-table-select');
+  if (!sel) return;
+  sel.innerHTML = '';
+  for (let t = 1; t <= 12; t++) {
+    const saved = lsGet('am_table', 3);
+    const b = document.createElement('button');
+    b.className = 'btn' + (saved === t ? '' : ' outline');
+    b.style.cssText = 'padding:8px 4px;font-size:.95rem;';
+    b.textContent = `×${t}`;
+    b.onclick = () => { lsSet('am_table', t); amInit(); };
+    sel.appendChild(b);
+  }
+}
+
+function amStart() {
+  AM_STATE.table = lsGet('am_table', 3);
+  const animals = AM_ANIMALS.slice().sort(() => Math.random() - .5).slice(0, 8);
+  const deck = [...animals, ...animals].sort(() => Math.random() - .5);
+  AM_STATE.cards = deck.map((a, i) => ({ animal: a, id: i, flipped: false, matched: false }));
+  AM_STATE.flipped = []; AM_STATE.locked = false; AM_STATE.matched = 0;
+  AM_STATE.score = 0;
+  document.getElementById('am-start').style.display = 'none';
+  document.getElementById('am-game').style.display = 'block';
+  amRenderGrid();
+  amUpdateHUD();
+}
+
+function amRenderGrid() {
+  const grid = document.getElementById('am-grid');
+  grid.innerHTML = '';
+  AM_STATE.cards.forEach((c, i) => {
+    const div = document.createElement('div');
+    div.style.cssText = `aspect-ratio:1;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:2.2rem;cursor:pointer;user-select:none;touch-action:manipulation;transition:transform .2s,background .2s;border:3px solid transparent;`;
+    if (c.matched) {
+      div.style.background = 'linear-gradient(135deg,#d1fae5,#a7f3d0)';
+      div.style.borderColor = '#10b981';
+      div.textContent = c.animal;
+    } else if (c.flipped) {
+      div.style.background = '#fff';
+      div.style.borderColor = '#6ee7b7';
+      div.style.boxShadow = '0 2px 12px rgba(16,185,129,.25)';
+      div.textContent = c.animal;
+    } else {
+      div.style.background = 'linear-gradient(135deg,#10b981,#0d9488)';
+      div.style.boxShadow = '0 3px 8px rgba(16,185,129,.3)';
+      div.textContent = '?';
+      div.style.color = '#fff';
+      div.style.fontWeight = '800';
+      div.style.fontSize = '1.8rem';
+      div.onclick = () => amFlip(i);
+    }
+    grid.appendChild(div);
+  });
+}
+
+function amFlip(i) {
+  if (AM_STATE.locked) return;
+  const c = AM_STATE.cards[i];
+  if (c.flipped || c.matched) return;
+  c.flipped = true;
+  AM_STATE.flipped.push(i);
+  amRenderGrid();
+  if (AM_STATE.flipped.length === 2) {
+    AM_STATE.locked = true;
+    const [a, b] = AM_STATE.flipped;
+    if (AM_STATE.cards[a].animal === AM_STATE.cards[b].animal) {
+      AM_STATE.pendingPair = [a, b];
+      setTimeout(() => amStartMath(), 500);
+    } else {
+      setTimeout(() => {
+        AM_STATE.cards[a].flipped = false;
+        AM_STATE.cards[b].flipped = false;
+        AM_STATE.flipped = [];
+        AM_STATE.locked = false;
+        amRenderGrid();
+      }, 900);
+    }
+  }
+}
+
+function amStartMath() {
+  const animal = AM_STATE.cards[AM_STATE.pendingPair[0]].animal;
+  document.getElementById('am-math-match-emoji').textContent = animal + ' ' + animal;
+  AM_STATE.mathQuestions = [];
+  for (let q = 0; q < 10; q++) {
+    const a = Math.floor(Math.random() * 10) + 1;
+    AM_STATE.mathQuestions.push({ a, b: AM_STATE.table, ans: a * AM_STATE.table });
+  }
+  AM_STATE.mathIdx = 0;
+  AM_STATE.mathCorrect = 0;
+  const overlay = document.getElementById('am-math-overlay');
+  overlay.style.display = 'flex';
+  amShowMathQ();
+}
+
+function amShowMathQ() {
+  const q = AM_STATE.mathQuestions[AM_STATE.mathIdx];
+  document.getElementById('am-math-progress').textContent = `Question ${AM_STATE.mathIdx + 1} / 10`;
+  document.getElementById('am-math-question').textContent = `${q.a} × ${q.b} = ?`;
+  document.getElementById('am-math-input').value = '';
+  document.getElementById('am-math-feedback').textContent = '';
+  document.getElementById('am-math-timer-bar').style.width = '100%';
+  document.getElementById('am-math-timer-bar').style.background = '#10b981';
+  setTimeout(() => document.getElementById('am-math-input').focus(), 50);
+  clearInterval(AM_STATE.mathTimer);
+  AM_STATE.mathSec = 10;
+  const start = Date.now();
+  AM_STATE.mathTimer = setInterval(() => {
+    const elapsed = (Date.now() - start) / 1000;
+    const pct = Math.max(0, 1 - elapsed / 10);
+    const bar = document.getElementById('am-math-timer-bar');
+    if (bar) {
+      bar.style.width = (pct * 100) + '%';
+      bar.style.background = pct > .5 ? '#10b981' : pct > .25 ? '#f59e0b' : '#ef4444';
+    }
+    if (elapsed >= 10) {
+      clearInterval(AM_STATE.mathTimer);
+      amMathNext(false, true);
+    }
+  }, 100);
+}
+
+function amMathSubmit() {
+  const val = parseInt(document.getElementById('am-math-input').value, 10);
+  if (isNaN(val)) return;
+  const q = AM_STATE.mathQuestions[AM_STATE.mathIdx];
+  clearInterval(AM_STATE.mathTimer);
+  if (val === q.ans) {
+    AM_STATE.mathCorrect++;
+    document.getElementById('am-math-feedback').style.color = '#10b981';
+    document.getElementById('am-math-feedback').textContent = '✓ Correct!';
+    setTimeout(() => amMathNext(true, false), 500);
+  } else {
+    document.getElementById('am-math-feedback').style.color = '#ef4444';
+    document.getElementById('am-math-feedback').textContent = `✗ It was ${q.ans}`;
+    setTimeout(() => amMathNext(false, false), 800);
+  }
+}
+
+function amMathNext(correct, timedOut) {
+  if (timedOut) {
+    const q = AM_STATE.mathQuestions[AM_STATE.mathIdx];
+    document.getElementById('am-math-feedback').style.color = '#ef4444';
+    document.getElementById('am-math-feedback').textContent = `⏱️ Time! It was ${q.ans}`;
+  }
+  AM_STATE.mathIdx++;
+  if (AM_STATE.mathIdx >= 10) {
+    setTimeout(amMathDone, timedOut ? 900 : 0);
+    return;
+  }
+  setTimeout(amShowMathQ, timedOut ? 900 : 300);
+}
+
+function amMathDone() {
+  clearInterval(AM_STATE.mathTimer);
+  document.getElementById('am-math-overlay').style.display = 'none';
+  const stars = AM_STATE.mathCorrect;
+  AM_STATE.score += stars;
+  const [a, b] = AM_STATE.pendingPair;
+  AM_STATE.cards[a].matched = true;
+  AM_STATE.cards[b].matched = true;
+  AM_STATE.cards[a].flipped = false;
+  AM_STATE.cards[b].flipped = false;
+  AM_STATE.flipped = [];
+  AM_STATE.pendingPair = [];
+  AM_STATE.matched++;
+  AM_STATE.locked = false;
+  amUpdateHUD();
+  amRenderGrid();
+  if (AM_STATE.matched === 8) {
+    setTimeout(amWin, 400);
+  }
+}
+
+function amUpdateHUD() {
+  document.getElementById('am-pairs-display').textContent = `🐾 ${AM_STATE.matched} / 8`;
+  document.getElementById('am-score-display').textContent = `⭐ ${AM_STATE.score}`;
+}
+
+function amWin() {
+  const best = lsGet('am_best_score', 0);
+  if (AM_STATE.score > best) lsSet('am_best_score', AM_STATE.score);
+  const perfect = AM_STATE.score === 80;
+  document.getElementById('am-win-body').innerHTML =
+    `You matched all 8 pairs!<br>⭐ Score: <b>${AM_STATE.score} / 80</b>${perfect ? '<br>🏆 Perfect score!' : ''}`;
+  document.getElementById('am-win-overlay').style.display = 'flex';
+}
+
+function amReset() {
+  document.getElementById('am-win-overlay').style.display = 'none';
+  document.getElementById('am-math-overlay').style.display = 'none';
+  clearInterval(AM_STATE.mathTimer);
+  document.getElementById('am-game').style.display = 'none';
+  document.getElementById('am-start').style.display = 'block';
+  amInit();
 }
 
 /* ════════════════════════════════════════════════
