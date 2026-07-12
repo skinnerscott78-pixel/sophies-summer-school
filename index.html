@@ -674,10 +674,13 @@ input:checked + .slider:before { transform: translateX(22px); }
   <!-- ── PICKER (shown before game starts) ── -->
   <div id="pd-picker" class="card text-center">
     <button class="btn outline" style="margin-bottom:14px;padding:10px 20px;font-size:.9rem;" onclick="showScreen('screen-home')">← Home</button>
-    <div style="font-size:3.5rem;line-height:1;">🦄</div>
-    <h2 style="margin:10px 0 4px;">Pony Drop</h2>
-    <p class="muted" style="margin-bottom:18px;">Catch the falling × problems before they land!</p>
-    <p style="font-weight:700;margin-bottom:10px;color:#7e22ce;">Pick a times table to practice:</p>
+    <h2 style="margin:0 0 4px;">🦄 Pony Drop</h2>
+    <p class="muted" style="margin-bottom:14px;">Catch the × problems before they land!</p>
+
+    <p style="font-weight:800;margin-bottom:8px;color:#7e22ce;font-size:.9rem;">🐴 Choose Your Pony</p>
+    <div id="pd-pony-picker" class="skin-grid" style="margin-bottom:16px;"></div>
+
+    <p style="font-weight:700;margin-bottom:8px;color:#7e22ce;font-size:.85rem;">Pick a times table:</p>
     <div id="pd-table-select" style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:18px;"></div>
     <button class="btn" style="width:100%;background:linear-gradient(135deg,#a855f7,#ec4899);font-size:1.15rem;padding:16px;" onclick="startPonyDrop()">Let's Go! 🦄</button>
   </div>
@@ -998,7 +1001,7 @@ function showScreen(id) {
   if (id === 'screen-parent') renderParentScreen();
   if (id === 'screen-starfall') { renderStarfallListButtons(); }
   if (id === 'screen-snake') { renderSkinPicker(); }
-  if (id === 'screen-ponydrop') { initPonyDropTableSelect(); }
+  if (id === 'screen-ponydrop') { initPonyDropTableSelect(); renderPonyPicker(); }
   if (id === 'screen-stickers') { renderStickerBook(); }
 }
 
@@ -2599,17 +2602,48 @@ const PD_BG = [
   ['#450a0a','#991b1b'], // 8 deep red
 ];
 
-// Pony evolves each level — shown in level-up flash
+// Ponies — unlocked by reaching that level
 const PD_PONIES = [
-  { emoji:'🐴', name:'Baby Pony' },
-  { emoji:'🐎', name:'Racing Pony' },
-  { emoji:'🦄', name:'Unicorn!' },
-  { emoji:'🌟', name:'Star Pony!' },
-  { emoji:'🎠', name:'Magic Pony!' },
-  { emoji:'🌈', name:'Rainbow Pony!' },
-  { emoji:'💫', name:'Galaxy Pony!!' },
-  { emoji:'👑', name:'Queen Pony!!!' },
+  { emoji:'🐴', name:'Baby Pony',    need:1 },
+  { emoji:'🐎', name:'Racing Pony',  need:2 },
+  { emoji:'🦄', name:'Unicorn',      need:3 },
+  { emoji:'🌟', name:'Star Pony',    need:4 },
+  { emoji:'🎠', name:'Magic Pony',   need:5 },
+  { emoji:'🌈', name:'Rainbow Pony', need:6 },
+  { emoji:'💫', name:'Galaxy Pony',  need:7 },
+  { emoji:'👑', name:'Queen Pony',   need:8 },
 ];
+
+function getEquippedPony() {
+  return PD_PONIES[lsGet('pd_equipped_pony', 0)] || PD_PONIES[0];
+}
+
+function equipPony(idx) {
+  const bestLevel = lsGet('pd_best_level', 1);
+  if (PD_PONIES[idx] && bestLevel >= PD_PONIES[idx].need) {
+    lsSet('pd_equipped_pony', idx);
+    renderPonyPicker();
+  }
+}
+
+function renderPonyPicker() {
+  const el = document.getElementById('pd-pony-picker');
+  if (!el) return;
+  const bestLevel = lsGet('pd_best_level', 1);
+  const equipped = lsGet('pd_equipped_pony', 0);
+  let html = '';
+  PD_PONIES.forEach((p, i) => {
+    const unlocked = bestLevel >= p.need;
+    const active = equipped === i;
+    html += `<div class="skin-cell${active?' equipped':''}${!unlocked?' locked':''}"
+      onclick="${unlocked ? 'equipPony('+i+')' : ''}">
+      <div class="se">${unlocked ? p.emoji : '🔒'}</div>
+      <div class="sn">${p.name}</div>
+      ${!unlocked ? `<div class="sr">Level ${p.need}</div>` : ''}
+    </div>`;
+  });
+  el.innerHTML = html;
+}
 
 let pdTyped = '';
 
@@ -2690,7 +2724,7 @@ function startPonyDrop() {
     running:false, level:1, score:0, lives:3,
     blocks:[], lastSpawn:0, spawnMs:cfg.spawnMs,
     speed:cfg.speed, lanes:cfg.lanes, maxBlocks:cfg.maxBlocks,
-    pony:{ x:W/2, y:H-44, anim:0, jump:0, emoji:PD_PONIES[0].emoji },
+    pony:{ x:W/2, y:H-44, anim:0, jump:0, emoji:getEquippedPony().emoji },
     sparks:[], bgStars:[], W, H, dpr,
     focusedBlock:null,
     combo:0, levelFlash:0, levelFlashText:'',
@@ -2927,10 +2961,15 @@ function submitPonyAnswer() {
       const cfg = pdLevelConfig(PD_STATE.level);
       PD_STATE.speed=cfg.speed; PD_STATE.spawnMs=cfg.spawnMs;
       PD_STATE.lanes=cfg.lanes; PD_STATE.maxBlocks=cfg.maxBlocks;
-      const ponyData = PD_PONIES[Math.min(PD_STATE.level-1, PD_PONIES.length-1)];
-      PD_STATE.pony.emoji = ponyData.emoji;
-      PD_STATE.levelFlash = 55;
-      PD_STATE.levelFlashText = `LEVEL ${PD_STATE.level}! ${ponyData.name}`;
+      // Save best level reached
+      const prevBest = lsGet('pd_best_level', 1);
+      if (PD_STATE.level > prevBest) lsSet('pd_best_level', PD_STATE.level);
+      // Check if a new pony just unlocked
+      const newPony = PD_PONIES.find(p => p.need === PD_STATE.level);
+      PD_STATE.levelFlash = 70;
+      PD_STATE.levelFlashText = newPony
+        ? `${newPony.emoji} ${newPony.name} unlocked!`
+        : `LEVEL ${PD_STATE.level}!`;
       // Rain sparks across whole canvas
       for(let i=0;i<6;i++) spawnSparks(
         {x: (i+0.5)*(PD_STATE.W/6), y: PD_STATE.H*0.4, sparks:PD_STATE.sparks},
