@@ -292,6 +292,9 @@ input:checked + .slider:before { transform: translateX(22px); }
 .pd-key:active { transform:translateY(2px); box-shadow:0 1px 0 #d8b4fe; }
 .pd-key-del { background:#fef2f2; color:#dc2626; border-color:#fecaca; box-shadow:0 3px 0 #fca5a5; }
 .pd-key-go { background:linear-gradient(135deg,#a855f7,#ec4899); color:#fff; border-color:transparent; box-shadow:0 3px 0 #7e22ce; }
+.vk-alpha-row { display:flex; gap:5px; justify-content:center; margin-bottom:5px; }
+.vk-alpha-key { background:#fff; color:#1e293b; border:2px solid #e2e8f0; border-radius:9px; font-size:1.05rem; font-weight:700; padding:12px 0; min-width:0; flex:1; cursor:pointer; -webkit-user-select:none; user-select:none; touch-action:manipulation; box-shadow:0 2px 0 #cbd5e1; transition:transform .08s,box-shadow .08s; }
+.vk-alpha-key:active { transform:translateY(1px); box-shadow:0 1px 0 #cbd5e1; }
 .dpad { display:grid; grid-template-columns:repeat(3,72px); gap:8px; justify-content:center; margin-top:10px; }
 .dpad-btn { background:var(--pink); color:#fff; border:none; border-radius:14px; width:72px; height:72px; font-size:1.7rem; cursor:pointer; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 10px rgba(255,105,180,.3); -webkit-user-select:none; user-select:none; touch-action:manipulation; }
 .dpad-btn:active { transform:scale(.91); background:var(--pink-dark); }
@@ -437,11 +440,21 @@ input:checked + .slider:before { transform: translateX(22px); }
         <div id="math-timer-bar" style="height:100%;border-radius:99px;background:#22c55e;width:100%;transition:width .1s linear,background .3s;"></div>
       </div>
     </div>
-    <input class="answer-input" id="math-input" type="text" inputmode="numeric" pattern="[0-9]*"
-      placeholder="Your answer" autocomplete="off" autocorrect="off" spellcheck="false"
-      onkeydown="if(event.key==='Enter') submitMathAnswer()">
-    <div class="mt8">
-      <button class="btn" style="width:100%; margin-top:10px;" onclick="submitMathAnswer()">Check ✓</button>
+    <input class="answer-input" id="math-input" type="text" inputmode="none" readonly
+      placeholder="?" autocomplete="off" style="text-align:center; caret-color:transparent; pointer-events:none;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">
+      <button class="pd-key" onclick="vkKey('math-input','7',4)">7</button>
+      <button class="pd-key" onclick="vkKey('math-input','8',4)">8</button>
+      <button class="pd-key" onclick="vkKey('math-input','9',4)">9</button>
+      <button class="pd-key" onclick="vkKey('math-input','4',4)">4</button>
+      <button class="pd-key" onclick="vkKey('math-input','5',4)">5</button>
+      <button class="pd-key" onclick="vkKey('math-input','6',4)">6</button>
+      <button class="pd-key" onclick="vkKey('math-input','1',4)">1</button>
+      <button class="pd-key" onclick="vkKey('math-input','2',4)">2</button>
+      <button class="pd-key" onclick="vkKey('math-input','3',4)">3</button>
+      <button class="pd-key pd-key-del" onclick="vkKey('math-input','del',4)">⌫</button>
+      <button class="pd-key" onclick="vkKey('math-input','0',4)">0</button>
+      <button class="pd-key pd-key-go" onclick="submitMathAnswer()">✓</button>
     </div>
   </div>
 
@@ -487,11 +500,20 @@ input:checked + .slider:before { transform: translateX(22px); }
   </div>
 
   <div class="card">
-    <input class="answer-input" id="spell-input" type="text" inputmode="text"
-      placeholder="Type the word…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-      onkeydown="if(event.key==='Enter') submitSpellAnswer()">
-    <button class="btn" style="width:100%; margin-top:12px;" onclick="submitSpellAnswer()">Check ✓</button>
-    <button class="btn outline" style="width:100%; margin-top:8px; font-size:.9rem;" onclick="speakCurrentWord()">🔊 Hear it again</button>
+    <input class="answer-input" id="spell-input" type="text" inputmode="none" readonly
+      placeholder="Tap letters below…" autocomplete="off" style="text-align:center; caret-color:transparent; pointer-events:none;">
+    <div style="margin-top:10px;">
+      <div class="vk-alpha-row">
+        <button class="vk-alpha-key" onclick="vkKey('spell-input','q',30)">Q</button><button class="vk-alpha-key" onclick="vkKey('spell-input','w',30)">W</button><button class="vk-alpha-key" onclick="vkKey('spell-input','e',30)">E</button><button class="vk-alpha-key" onclick="vkKey('spell-input','r',30)">R</button><button class="vk-alpha-key" onclick="vkKey('spell-input','t',30)">T</button><button class="vk-alpha-key" onclick="vkKey('spell-input','y',30)">Y</button><button class="vk-alpha-key" onclick="vkKey('spell-input','u',30)">U</button><button class="vk-alpha-key" onclick="vkKey('spell-input','i',30)">I</button><button class="vk-alpha-key" onclick="vkKey('spell-input','o',30)">O</button><button class="vk-alpha-key" onclick="vkKey('spell-input','p',30)">P</button>
+      </div>
+      <div class="vk-alpha-row">
+        <button class="vk-alpha-key" onclick="vkKey('spell-input','a',30)">A</button><button class="vk-alpha-key" onclick="vkKey('spell-input','s',30)">S</button><button class="vk-alpha-key" onclick="vkKey('spell-input','d',30)">D</button><button class="vk-alpha-key" onclick="vkKey('spell-input','f',30)">F</button><button class="vk-alpha-key" onclick="vkKey('spell-input','g',30)">G</button><button class="vk-alpha-key" onclick="vkKey('spell-input','h',30)">H</button><button class="vk-alpha-key" onclick="vkKey('spell-input','j',30)">J</button><button class="vk-alpha-key" onclick="vkKey('spell-input','k',30)">K</button><button class="vk-alpha-key" onclick="vkKey('spell-input','l',30)">L</button>
+      </div>
+      <div class="vk-alpha-row">
+        <button class="pd-key pd-key-del" style="flex:1.4;font-size:1.1rem;padding:12px 0;" onclick="vkKey('spell-input','del',30)">⌫</button><button class="vk-alpha-key" onclick="vkKey('spell-input','z',30)">Z</button><button class="vk-alpha-key" onclick="vkKey('spell-input','x',30)">X</button><button class="vk-alpha-key" onclick="vkKey('spell-input','c',30)">C</button><button class="vk-alpha-key" onclick="vkKey('spell-input','v',30)">V</button><button class="vk-alpha-key" onclick="vkKey('spell-input','b',30)">B</button><button class="vk-alpha-key" onclick="vkKey('spell-input','n',30)">N</button><button class="vk-alpha-key" onclick="vkKey('spell-input','m',30)">M</button><button class="pd-key pd-key-go" style="flex:1.4;font-size:1.1rem;padding:12px 0;" onclick="submitSpellAnswer()">✓</button>
+      </div>
+    </div>
+    <button class="btn outline" style="width:100%; margin-top:10px; font-size:.9rem;" onclick="speakCurrentWord()">🔊 Hear it again</button>
   </div>
 
   <div class="feedback hidden" id="spell-feedback"></div>
@@ -576,10 +598,22 @@ input:checked + .slider:before { transform: translateX(22px); }
   <div id="daily-math-area" class="card text-center">
     <p class="muted" style="margin-bottom:6px;" id="daily-math-label">Question 1 of 10</p>
     <div class="big-text" id="daily-math-problem" style="margin:14px 0 18px;">3 × 4 = ?</div>
-    <input class="answer-input" id="daily-math-input" type="text" inputmode="numeric" pattern="[0-9]*"
-      placeholder="Your answer" autocomplete="off" autocorrect="off" spellcheck="false"
-      onkeydown="if(event.key==='Enter') submitDailyMath()">
-    <button class="btn" style="width:100%; margin-top:12px;" onclick="submitDailyMath()">Check ✓</button>
+    <input class="answer-input" id="daily-math-input" type="text" inputmode="none" readonly
+      placeholder="?" autocomplete="off" style="text-align:center; caret-color:transparent; pointer-events:none;">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;">
+      <button class="pd-key" onclick="vkKey('daily-math-input','7',4)">7</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','8',4)">8</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','9',4)">9</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','4',4)">4</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','5',4)">5</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','6',4)">6</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','1',4)">1</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','2',4)">2</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','3',4)">3</button>
+      <button class="pd-key pd-key-del" onclick="vkKey('daily-math-input','del',4)">⌫</button>
+      <button class="pd-key" onclick="vkKey('daily-math-input','0',4)">0</button>
+      <button class="pd-key pd-key-go" onclick="submitDailyMath()">✓</button>
+    </div>
   </div>
 
   <!-- Spelling phase -->
@@ -588,13 +622,20 @@ input:checked + .slider:before { transform: translateX(22px); }
     <div class="spell-word-box" id="daily-spell-box">?</div>
     <p class="muted mt8" id="daily-spell-instruction">Listen, then type the word!</p>
     <div class="mt8">
-      <input class="answer-input" id="daily-spell-input" type="text" inputmode="text"
-        placeholder="Type the word…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-        onkeydown="if(event.key==='Enter') submitDailySpell()" style="margin-bottom:10px;">
-      <div class="btn-row">
-        <button class="btn" onclick="submitDailySpell()">Check ✓</button>
-        <button class="btn outline" onclick="speakDailyWord()">🔊 Hear Again</button>
+      <input class="answer-input" id="daily-spell-input" type="text" inputmode="none" readonly
+        placeholder="Tap letters below…" autocomplete="off" style="text-align:center; caret-color:transparent; pointer-events:none; margin-bottom:8px;">
+      <div>
+        <div class="vk-alpha-row">
+          <button class="vk-alpha-key" onclick="vkKey('daily-spell-input','q',30)">Q</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','w',30)">W</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','e',30)">E</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','r',30)">R</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','t',30)">T</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','y',30)">Y</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','u',30)">U</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','i',30)">I</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','o',30)">O</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','p',30)">P</button>
+        </div>
+        <div class="vk-alpha-row">
+          <button class="vk-alpha-key" onclick="vkKey('daily-spell-input','a',30)">A</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','s',30)">S</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','d',30)">D</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','f',30)">F</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','g',30)">G</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','h',30)">H</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','j',30)">J</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','k',30)">K</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','l',30)">L</button>
+        </div>
+        <div class="vk-alpha-row">
+          <button class="pd-key pd-key-del" style="flex:1.4;font-size:1.1rem;padding:12px 0;" onclick="vkKey('daily-spell-input','del',30)">⌫</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','z',30)">Z</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','x',30)">X</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','c',30)">C</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','v',30)">V</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','b',30)">B</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','n',30)">N</button><button class="vk-alpha-key" onclick="vkKey('daily-spell-input','m',30)">M</button><button class="pd-key pd-key-go" style="flex:1.4;font-size:1.1rem;padding:12px 0;" onclick="submitDailySpell()">✓</button>
+        </div>
       </div>
+      <button class="btn outline" style="width:100%;margin-top:8px;font-size:.9rem;" onclick="speakDailyWord()">🔊 Hear Again</button>
     </div>
   </div>
 
@@ -639,11 +680,23 @@ input:checked + .slider:before { transform: translateX(22px); }
       <div class="overlay-title">Math Check!</div>
       <div class="overlay-body" style="margin-bottom:8px;">Answer correctly to keep going!</div>
       <div class="big-text" id="snake-math-problem" style="margin:10px 0 16px;">3 × 4 = ?</div>
-      <input class="answer-input" id="snake-math-input" type="text" inputmode="numeric" pattern="[0-9]*"
-        placeholder="Your answer" autocomplete="off" autocorrect="off" spellcheck="false"
-        onkeydown="if(event.key==='Enter') submitSnakeMath()" style="margin-bottom:8px;">
-      <div id="snake-math-feedback" style="color:#C62828; font-weight:700; min-height:22px; margin-bottom:10px; font-size:.95rem;"></div>
-      <button class="btn" style="width:100%;" onclick="submitSnakeMath()">Check ✓</button>
+      <input class="answer-input" id="snake-math-input" type="text" inputmode="none" readonly
+        placeholder="?" autocomplete="off" style="text-align:center; caret-color:transparent; pointer-events:none; margin-bottom:8px;">
+      <div id="snake-math-feedback" style="color:#C62828; font-weight:700; min-height:22px; margin-bottom:8px; font-size:.95rem;"></div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;">
+        <button class="pd-key" onclick="vkKey('snake-math-input','7',4)">7</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','8',4)">8</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','9',4)">9</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','4',4)">4</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','5',4)">5</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','6',4)">6</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','1',4)">1</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','2',4)">2</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','3',4)">3</button>
+        <button class="pd-key pd-key-del" onclick="vkKey('snake-math-input','del',4)">⌫</button>
+        <button class="pd-key" onclick="vkKey('snake-math-input','0',4)">0</button>
+        <button class="pd-key pd-key-go" onclick="submitSnakeMath()">✓</button>
+      </div>
     </div>
   </div>
 
@@ -766,13 +819,20 @@ input:checked + .slider:before { transform: translateX(22px); }
     </div>
     <div class="card">
       <p class="muted" style="text-align:center; font-size:.9rem; margin-bottom:10px;">Listen 🔊 then type the word!</p>
-      <input class="answer-input" id="starfall-input" type="text" inputmode="text"
-        placeholder="Type the word…" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"
-        onkeydown="if(event.key==='Enter') submitStarfallAnswer()">
-      <div class="btn-row" style="margin-top:10px;">
-        <button class="btn" onclick="submitStarfallAnswer()">Check ✓</button>
-        <button class="btn outline" onclick="speakStarfallWord()">🔊 Hear Again</button>
+      <input class="answer-input" id="starfall-input" type="text" inputmode="none" readonly
+        placeholder="Tap letters below…" autocomplete="off" style="text-align:center; caret-color:transparent; pointer-events:none;">
+      <div style="margin-top:10px;">
+        <div class="vk-alpha-row">
+          <button class="vk-alpha-key" onclick="vkKey('starfall-input','q',30)">Q</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','w',30)">W</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','e',30)">E</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','r',30)">R</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','t',30)">T</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','y',30)">Y</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','u',30)">U</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','i',30)">I</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','o',30)">O</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','p',30)">P</button>
+        </div>
+        <div class="vk-alpha-row">
+          <button class="vk-alpha-key" onclick="vkKey('starfall-input','a',30)">A</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','s',30)">S</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','d',30)">D</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','f',30)">F</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','g',30)">G</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','h',30)">H</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','j',30)">J</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','k',30)">K</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','l',30)">L</button>
+        </div>
+        <div class="vk-alpha-row">
+          <button class="pd-key pd-key-del" style="flex:1.4;font-size:1.1rem;padding:12px 0;" onclick="vkKey('starfall-input','del',30)">⌫</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','z',30)">Z</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','x',30)">X</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','c',30)">C</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','v',30)">V</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','b',30)">B</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','n',30)">N</button><button class="vk-alpha-key" onclick="vkKey('starfall-input','m',30)">M</button><button class="pd-key pd-key-go" style="flex:1.4;font-size:1.1rem;padding:12px 0;" onclick="submitStarfallAnswer()">✓</button>
+        </div>
       </div>
+      <button class="btn outline" style="width:100%;margin-top:8px;font-size:.9rem;" onclick="speakStarfallWord()">🔊 Hear Again</button>
     </div>
     <div class="feedback hidden" id="starfall-feedback"></div>
   </div>
@@ -3135,6 +3195,16 @@ function amClearDisplay() {
   amTyped = '';
   const d = document.getElementById('am-answer-display');
   if (d) d.innerHTML = `<span style="opacity:.35;">?</span>`;
+}
+
+/* ════════════════════════════════════════════════
+   VIRTUAL KEYBOARD HELPER
+════════════════════════════════════════════════ */
+function vkKey(inputId, k, maxLen) {
+  const inp = document.getElementById(inputId);
+  if (!inp) return;
+  if (k === 'del') { inp.value = inp.value.slice(0, -1); }
+  else if (inp.value.length < (maxLen || 20)) { inp.value += k; }
 }
 
 function amInit() {
